@@ -1,0 +1,58 @@
+{
+  "name": "BRIGHT CAMPUS BHADOHI - UP PCS PDF STUDIO",
+  "short_name": "Bright Campus",
+  "description": "Mobile-First PDF Studio & Competitive Exam Question Bank App for UP PCS 2026-2027 & UPSC by BRIGHT CAMPUS BHADOHI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5efe6",
+  "theme_color": "#ff9933",
+  "orientation": "any",
+  "dir": "ltr",
+  "id": "com.brightcampus.pdfstudio",
+  "icons": [
+    {
+      "src": "./assets/aistudio/Square44x44Logo.altform-unplated_targetsize-256_0e9361d1.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/aistudio/Square150x150Logo.scale-200_9bff154c.png",
+      "sizes": "300x300",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/aistudio/Square150x150Logo.scale-100_6a8a5bd9.png",
+      "sizes": "150x150",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/aistudio/Square44x44Logo.targetsize-96_7a3c81cd.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/aistudio/Square44x44Logo.targetsize-48_229fc30c.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/aistudio/Square44x44Logo.targetsize-32_1142efec.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/aistudio/StoreLogo.scale-400_c041195e.png",
+      "sizes": "200x200",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/aistudio/LargeTile.scale-200_4739e9b5.png",
+      "sizes": "620x620",
+      "type": "image/png"
+    }
+  ]
+}
