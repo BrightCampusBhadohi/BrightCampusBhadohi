@@ -31,7 +31,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   const [isAutoFlipping, setIsAutoFlipping] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Gesture State for Mouse Drag & Finger Touch Swipe
+  // Gesture State for Touch Swipe & Mouse Drag Flexible Page Bend
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -72,7 +72,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         setCurrentPage((prev) => prev + 1);
         setIsFlipping(false);
         setDragOffset(0);
-      }, 280);
+      }, 320);
     } else if (isAutoFlipping) {
       setIsAutoFlipping(false);
     }
@@ -87,11 +87,11 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         setCurrentPage((prev) => prev - 1);
         setIsFlipping(false);
         setDragOffset(0);
-      }, 280);
+      }, 320);
     }
   };
 
-  // --- TOUCH & MOUSE GESTURE HANDLERS ---
+  // --- TOUCH SWIPE & MOUSE DRAG FLEXIBLE BEND HANDLERS ---
   const handleTouchStart = (e: React.TouchEvent) => {
     const clientX = e.touches[0].clientX;
     setTouchStartX(clientX);
@@ -109,9 +109,9 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     if (!isDragging) return;
     setIsDragging(false);
 
-    if (dragOffset < -50) {
+    if (dragOffset < -40) {
       handleNextPage();
-    } else if (dragOffset > 50) {
+    } else if (dragOffset > 40) {
       handlePrevPage();
     } else {
       setDragOffset(0);
@@ -134,9 +134,9 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     if (!isDragging) return;
     setIsDragging(false);
 
-    if (dragOffset < -50) {
+    if (dragOffset < -40) {
       handleNextPage();
-    } else if (dragOffset > 50) {
+    } else if (dragOffset > 40) {
       handlePrevPage();
     } else {
       setDragOffset(0);
@@ -197,47 +197,75 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     }
   };
 
-  // Render a single page content unit with Realistic Book Binding & Page Stack Layers
+  // Compute Flexible Bending Paper 3D Transform
+  const computeFlexiblePaperStyle = () => {
+    if (isFlipping) {
+      const angle = flipDirection === 'next' ? -65 : 65;
+      const skew = flipDirection === 'next' ? -8 : 8;
+      return {
+        transform: `perspective(1400px) rotateY(${angle}deg) skewY(${skew}deg) scale(0.96)`,
+        transition: 'transform 0.32s cubic-bezier(0.25, 1, 0.5, 1)'
+      };
+    }
+    if (isDragging && dragOffset !== 0) {
+      // Calculate dynamic paper flex angle based on finger/mouse distance
+      const flexAngle = Math.min(Math.max((dragOffset / 200) * 70, -80), 80);
+      const flexSkew = flexAngle * 0.12; // Realistic paper bending curvature
+      return {
+        transform: `perspective(1400px) rotateY(${flexAngle}deg) skewY(${flexSkew}deg) scale(${1 - Math.abs(flexAngle) * 0.0025})`,
+        transition: 'none'
+      };
+    }
+    return {
+      transform: 'perspective(1400px) rotateY(0deg) skewY(0deg) scale(1)',
+      transition: 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'
+    };
+  };
+
+  // Render a single page content unit with Flexible Bending Paper Physics & Spine Shadow
   const renderPageContent = (chunk: Question[], pageIndex: number) => (
     <div
       key={pageIndex}
-      className={`pdf-page-unit ${getPaperClass()} border border-amber-300/80 rounded-sm mx-auto p-6 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none`}
+      className={`pdf-page-unit ${getPaperClass()} border border-amber-300/80 rounded-sm mx-auto p-4 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none w-full max-w-full sm:max-w-[794px]`}
       style={{
-        width: '100%',
-        maxWidth: '794px', // Standard A4 ratio
-        minHeight: '1123px', // Standard A4 height
         boxSizing: 'border-box',
         color: styleConfig.inkColor,
         fontWeight: styleConfig.fontWeight === 'bold-900' ? 900 : 700,
-        boxShadow: '-10px 0 25px rgba(0,0,0,0.12), 10px 0 25px rgba(0,0,0,0.08), inset 20px 0 30px -10px rgba(0,0,0,0.15)'
+        boxShadow: '-10px 0 25px rgba(0,0,0,0.15), 10px 0 20px rgba(0,0,0,0.08), inset 22px 0 32px -10px rgba(0,0,0,0.18)',
+        transformOrigin: 'left center'
       }}
     >
-      {/* Center Spine Inner Book Fold Shadow */}
-      <div className="absolute top-0 bottom-0 left-0 w-10 bg-gradient-to-r from-black/20 via-black/5 to-transparent pointer-events-none z-20"></div>
+      {/* Center Spine Flexible Paper Fold Shadow */}
+      <div className="absolute top-0 bottom-0 left-0 w-8 sm:w-12 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none z-20"></div>
+
+      {/* Dynamic Paper Crease Bend Shadow overlay during flip */}
+      {(isFlipping || isDragging) && (
+        <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-amber-900/10 to-black/15 pointer-events-none z-25"></div>
+      )}
 
       {/* Right Book Page Stack Thickness Lines */}
-      <div className="absolute top-1 bottom-1 right-0 w-2 border-r-4 border-double border-amber-200/90 pointer-events-none z-20"></div>
+      <div className="absolute top-1 bottom-1 right-0 w-1.5 sm:w-2 border-r-2 sm:border-r-4 border-double border-amber-200/90 pointer-events-none z-20"></div>
 
       {/* Ribbon Bookmark Corner Accent */}
-      <div className="absolute top-0 right-8 w-6 h-11 bg-[#FF9933] shadow-lg z-30 flex items-end justify-center pb-1 rounded-b-sm">
-        <Bookmark className="w-4 h-4 text-white fill-current" />
+      <div className="absolute top-0 right-4 sm:right-8 w-5 sm:w-6 h-8 sm:h-11 bg-[#FF9933] shadow-md z-30 flex items-end justify-center pb-1 rounded-b-sm">
+        <Bookmark className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white fill-current" />
       </div>
 
-      {/* Peeling Page Corner Curl (Clickable to Flip Next) */}
+      {/* Flexible Peeling Page Corner Curl (Click or Touch Corner to Flip Page) */}
       <div
-        onClick={handleNextPage}
-        className="absolute bottom-0 right-0 w-16 h-16 bg-gradient-to-tl from-amber-300/90 via-amber-200/40 to-transparent pointer-events-auto z-30 rounded-tl-full shadow-lg cursor-pointer hover:scale-110 transition group"
-        title="पेज पलटने के लिए क्लिक करें"
+        onClick={(e) => { e.stopPropagation(); handleNextPage(); }}
+        className="absolute bottom-0 right-0 w-14 sm:w-18 h-14 sm:h-18 bg-gradient-to-tl from-amber-400 via-amber-200/60 to-transparent pointer-events-auto z-30 rounded-tl-[40px] shadow-2xl cursor-pointer hover:scale-115 active:scale-95 transition group flex items-end justify-end p-2 border-t border-l border-amber-300"
+        title="कागज़ की तरह मोडकर पेज पलटने के लिए यहाँ टच करें"
       >
-        <div className="absolute bottom-1 right-1 text-[10px] font-bold text-slate-700 opacity-60 group-hover:opacity-100">
-          ▶
-        </div>
+        <span className="text-[11px] sm:text-xs font-black text-[#000080] group-hover:translate-x-0.5 transition flex items-center gap-0.5">
+          📖 ➔
+        </span>
       </div>
 
       {/* Watermark */}
       {headerConfig.showWatermark && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.05] select-none rotate-[-30deg]">
-          <span className="text-5xl sm:text-6xl font-black text-black tracking-widest text-center uppercase">
+          <span className="text-3xl sm:text-6xl font-black text-black tracking-widest text-center uppercase">
             {headerConfig.watermarkText || headerConfig.instituteName}
           </span>
         </div>
@@ -245,30 +273,30 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
       {/* Page Header */}
       {pageIndex === 0 ? (
-        <div className="border-b-2 border-slate-900 pb-4 mb-6 relative">
+        <div className="border-b-2 border-slate-900 pb-3 sm:pb-4 mb-4 sm:mb-6 relative">
           
           {/* Top Institute Header */}
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-black tracking-wide uppercase font-outfit text-[#000080]">
+            <h1 className="text-lg sm:text-2xl font-black tracking-wide uppercase font-outfit text-[#000080]">
               {headerConfig.instituteName}
             </h1>
-            <p className="text-xs font-semibold text-slate-700 font-hind">
+            <p className="text-[11px] sm:text-xs font-semibold text-slate-700 font-hind">
               {headerConfig.tagline}
             </p>
             
-            <div className="flex items-center justify-center gap-4 text-[11px] text-slate-600 font-hind pt-0.5">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] text-slate-600 font-hind pt-0.5">
               {headerConfig.showAddressInHeader && <span>📍 {headerConfig.address}</span>}
               {headerConfig.showContactInHeader && <span>{headerConfig.contactNumber}</span>}
             </div>
           </div>
 
           {/* Document Title Banner */}
-          <div className="mt-4 p-3 bg-gradient-to-r from-[#FF9933] via-[#000080] to-[#138808] text-white rounded-lg text-center shadow-md">
-            <h2 className="text-base font-bold tracking-wide font-hind uppercase text-white">
+          <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gradient-to-r from-[#FF9933] via-[#000080] to-[#138808] text-white rounded-lg text-center shadow-md">
+            <h2 className="text-xs sm:text-base font-bold tracking-wide font-hind uppercase text-white">
               {headerConfig.docTitle}
             </h2>
             {headerConfig.docSubtitle && (
-              <p className="text-xs font-medium text-amber-200 mt-0.5 font-hind">
+              <p className="text-[10px] sm:text-xs font-medium text-amber-200 mt-0.5 font-hind">
                 {headerConfig.docSubtitle}
               </p>
             )}
@@ -276,7 +304,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
           {/* Optional Exam Info Metadata Line */}
           {headerConfig.showExamMetadataLine && (
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 mt-2 px-1 font-hind">
+            <div className="flex flex-wrap items-center justify-between text-[10px] sm:text-[11px] font-bold text-slate-800 mt-2 px-1 font-hind gap-1">
               {headerConfig.totalTime && <span>समय: {headerConfig.totalTime}</span>}
               {headerConfig.setNumber && <span>सेट कोड: {headerConfig.setNumber}</span>}
               {headerConfig.negativeMarking && <span>ऋणात्मक अंकन: {headerConfig.negativeMarking}</span>}
@@ -287,31 +315,31 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         </div>
       ) : (
         /* Header on Page 2+ */
-        <div className="border-b border-slate-400 pb-2 mb-6 flex items-center justify-between text-xs text-slate-700 font-hind">
-          <span className="font-bold">{headerConfig.instituteName} • {headerConfig.docTitle}</span>
-          <span>पृष्ठ {pageIndex + 1} / {totalPages}</span>
+        <div className="border-b border-slate-400 pb-2 mb-4 sm:mb-6 flex items-center justify-between text-[11px] sm:text-xs text-slate-700 font-hind">
+          <span className="font-bold truncate max-w-[200px] sm:max-w-none">{headerConfig.instituteName} • {headerConfig.docTitle}</span>
+          <span className="shrink-0">पृष्ठ {pageIndex + 1} / {totalPages}</span>
         </div>
       )}
 
       {/* Question Items on this Page */}
-      <div className={`space-y-6 ${getFontClass()}`}>
+      <div className={`space-y-4 sm:space-y-6 ${getFontClass()}`}>
         {chunk.map((q, qSubIdx) => {
           const globalIdx = pageIndex * qPerPage + qSubIdx + 1;
           return (
-            <div key={q.id} className="relative pl-6 pb-2 border-b border-blue-200/60 last:border-none">
+            <div key={q.id} className="relative pl-3 sm:pl-6 pb-2 border-b border-blue-200/60 last:border-none">
               
               {/* Question Header */}
-              <div className="flex items-start gap-2 mb-2">
-                <span className="text-base font-black shrink-0">
+              <div className="flex items-start gap-1.5 sm:gap-2 mb-2">
+                <span className="text-sm sm:text-base font-black shrink-0">
                   प्र. {globalIdx}.
                 </span>
-                <h3 className="text-base font-black leading-relaxed">
+                <h3 className="text-sm sm:text-base font-black leading-relaxed">
                   {q.question}
                 </h3>
               </div>
 
               {/* Options Grid */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm pl-6 mt-1 font-black">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:text-sm pl-3 sm:pl-6 mt-1 font-black">
                 <div>(A) {q.optionA}</div>
                 <div>(B) {q.optionB}</div>
                 <div>(C) {q.optionC}</div>
@@ -320,9 +348,9 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
               {/* Step-by-step Hindi Explanation if enabled (Large Bold Green Text) */}
               {styleConfig.showInlineExplanations && q.explanation && (
-                <div className="mt-3 ml-6 p-3 rounded-lg bg-emerald-50 border-l-4 border-[#138808] text-sm leading-relaxed font-devanagari text-[#138808] shadow-xs">
-                  <span className="font-black text-[#138808] text-sm block mb-0.5">व्याख्या (Explanation): </span>
-                  <span className="font-bold text-[#138808] text-sm">{q.explanation}</span>
+                <div className="mt-2.5 ml-2 sm:ml-6 p-2.5 sm:p-3 rounded-lg bg-emerald-50 border-l-4 border-[#138808] text-xs sm:text-sm leading-relaxed font-devanagari text-[#138808] shadow-xs">
+                  <span className="font-black text-[#138808] text-xs sm:text-sm block mb-0.5">व्याख्या (Explanation): </span>
+                  <span className="font-bold text-[#138808] text-xs sm:text-sm">{q.explanation}</span>
                 </div>
               )}
 
@@ -333,15 +361,15 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
       {/* Answer Key Table at bottom of Last Page */}
       {pageIndex === pageChunks.length - 1 && styleConfig.showAnswerKeyTable && (
-        <div className="mt-8 pt-4 border-t-2 border-slate-900 font-hind">
-          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 text-center">
+        <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t-2 border-slate-900 font-hind">
+          <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 text-center">
             - उत्तर कुंजी (ANSWER KEY MATRIX) -
           </h4>
-          <div className="grid grid-cols-5 md:grid-cols-10 gap-1 text-center text-xs">
+          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 text-center text-xs">
             {questions.map((q, idx) => (
               <div key={q.id} className="p-1 bg-white border border-slate-400 rounded">
-                <div className="text-[10px] text-slate-500 font-bold">Q{idx + 1}</div>
-                <div className="font-black text-[#138808]">({q.answerKey})</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-500 font-bold">Q{idx + 1}</div>
+                <div className="font-black text-[#138808] text-xs">({q.answerKey})</div>
               </div>
             ))}
           </div>
@@ -349,54 +377,42 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
       )}
 
       {/* Page Footer */}
-      <div className="mt-auto pt-6 border-t border-slate-400 flex items-center justify-between text-[11px] text-slate-600 font-hind">
-        <span>{headerConfig.instituteName} - {headerConfig.contactNumber}</span>
+      <div className="mt-6 sm:mt-auto pt-4 sm:pt-6 border-t border-slate-400 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 font-hind">
+        <span className="truncate max-w-[200px] sm:max-w-none">{headerConfig.instituteName} - {headerConfig.contactNumber}</span>
         <span>पृष्ठ {pageIndex + 1} / {totalPages}</span>
       </div>
 
     </div>
   );
 
-  // Dynamic 3D rotation transform based on gesture drag offset
-  const computeRotationStyle = () => {
-    if (isFlipping) {
-      return flipDirection === 'next' ? 'rotateY(-35deg) scale(0.97)' : 'rotateY(35deg) scale(0.97)';
-    }
-    if (isDragging && dragOffset !== 0) {
-      const degrees = Math.min(Math.max((dragOffset / 280) * 45, -55), 55);
-      return `rotateY(${degrees}deg) scale(${1 - Math.abs(degrees) * 0.003})`;
-    }
-    return 'rotateY(0deg) scale(1)';
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
       
       {/* Top Toolbar / Quick Style Controls in Tiranga Theme */}
-      <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 text-slate-900">
+      <div className="bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3 text-slate-900">
         
         {/* Left: Flipbook View Mode Switcher */}
         <div className="flex items-center gap-2">
           <div className="bg-[#fff7ed] p-1 rounded-xl border border-amber-200 flex items-center text-xs font-bold">
             <button
               onClick={() => setViewMode('flipbook')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 transition ${
                 viewMode === 'flipbook'
                   ? 'bg-[#FF9933] text-white shadow-sm'
                   : 'text-slate-700 hover:text-[#000080]'
               }`}
             >
-              <BookOpen className="w-4 h-4" /> 📖 3D फ़्लिपबुक (Page Flip)
+              <BookOpen className="w-3.5 h-3.5" /> 📖 3D Flexible Flipbook
             </button>
             <button
               onClick={() => setViewMode('scroll')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 transition ${
                 viewMode === 'scroll'
                   ? 'bg-[#FF9933] text-white shadow-sm'
                   : 'text-slate-700 hover:text-[#000080]'
               }`}
             >
-              <Layers className="w-4 h-4" /> 📄 स्क्रॉल पेज व्यू
+              <Layers className="w-3.5 h-3.5" /> 📄 स्क्रॉल पेज
             </button>
           </div>
         </div>
@@ -407,34 +423,34 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           {/* Sound Toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`px-3 py-1.5 rounded-xl border font-bold flex items-center gap-1.5 transition ${
+            className={`px-2.5 py-1.5 rounded-xl border font-bold flex items-center gap-1 transition ${
               soundEnabled
                 ? 'bg-amber-100 text-[#ea580c] border-amber-300'
                 : 'bg-slate-100 text-slate-500 border-slate-200'
             }`}
             title="पेज फ्लिप साउंड ऑन/ऑफ़ करें"
           >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-[#FF9933]" /> : <VolumeX className="w-4 h-4" />}
-            {soundEnabled ? '🔊 ध्वनि ON' : '🔇 ध्वनि OFF'}
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-[#FF9933]" /> : <VolumeX className="w-3.5 h-3.5" />}
+            {soundEnabled ? '🔊 साउंड ON' : '🔇 साउंड OFF'}
           </button>
 
           {/* Font Picker */}
-          <div className="flex items-center gap-1 bg-[#fff7ed] px-2.5 py-1.5 rounded-xl border border-amber-200">
+          <div className="flex items-center gap-1 bg-[#fff7ed] px-2 py-1.5 rounded-xl border border-amber-200">
             <span className="text-slate-600 font-medium">फ़ॉन्ट:</span>
             <select
               value={styleConfig.fontStyle}
               onChange={(e) => onUpdateStyleConfig({ ...styleConfig, fontStyle: e.target.value as any })}
               className="bg-transparent text-[#000080] font-bold focus:outline-none cursor-pointer"
             >
-              <option value="kalam" className="bg-white">✍️ Kalam Handwriting (कलम)</option>
+              <option value="kalam" className="bg-white">✍️ Kalam (कलम)</option>
               <option value="devanagari" className="bg-white">📖 Noto Devanagari</option>
               <option value="hind" className="bg-white">📄 Hind Clean</option>
-              <option value="outfit" className="bg-white">✨ Modern Outfit</option>
+              <option value="outfit" className="bg-white">✨ Outfit</option>
             </select>
           </div>
 
           {/* Paper Theme Picker */}
-          <div className="flex items-center gap-1 bg-[#fff7ed] px-2.5 py-1.5 rounded-xl border border-amber-200">
+          <div className="flex items-center gap-1 bg-[#fff7ed] px-2 py-1.5 rounded-xl border border-amber-200">
             <span className="text-slate-600 font-medium">कागज़:</span>
             <select
               value={styleConfig.paperTheme}
@@ -451,14 +467,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           {/* Show/Hide Answer Key */}
           <button
             onClick={() => onUpdateStyleConfig({ ...styleConfig, showAnswerKeyTable: !styleConfig.showAnswerKeyTable })}
-            className={`px-2.5 py-1.5 rounded-xl border font-medium flex items-center gap-1 transition ${
+            className={`px-2 py-1.5 rounded-xl border font-medium flex items-center gap-1 transition ${
               styleConfig.showAnswerKeyTable
                 ? 'bg-emerald-50 text-[#138808] border-emerald-300'
                 : 'bg-[#fff7ed] text-slate-600 border-amber-200'
             }`}
           >
             {styleConfig.showAnswerKeyTable ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            {styleConfig.showAnswerKeyTable ? 'उत्तर तालिका ON' : 'उत्तर तालिका OFF'}
+            {styleConfig.showAnswerKeyTable ? 'उत्तर ऑन' : 'उत्तर ऑफ़'}
           </button>
         </div>
 
@@ -466,24 +482,24 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenHeaderModal}
-            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-[#ea580c] text-xs font-bold rounded-xl flex items-center gap-1 border border-amber-200 transition"
+            className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-[#ea580c] text-xs font-bold rounded-xl flex items-center gap-1 border border-amber-200 transition"
           >
-            <Sparkles className="w-4 h-4 text-[#FF9933]" /> हेडर
+            <Sparkles className="w-3.5 h-3.5 text-[#FF9933]" /> हेडर
           </button>
 
           <button
             onClick={handlePrint}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1 border border-slate-300 transition"
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1 border border-slate-300 transition"
           >
-            <Printer className="w-4 h-4" /> प्रिंट
+            <Printer className="w-3.5 h-3.5" /> प्रिंट
           </button>
 
           <button
             onClick={handleDownloadPDF}
             disabled={isExporting || questions.length === 0}
-            className="px-4 py-2 bg-gradient-to-r from-[#138808] to-[#047857] hover:opacity-95 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-[#138808]/20 transition disabled:opacity-50"
+            className="px-3.5 py-1.5 bg-gradient-to-r from-[#138808] to-[#047857] hover:opacity-95 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-md transition disabled:opacity-50"
           >
-            <Download className="w-4 h-4 text-amber-200" />
+            <Download className="w-3.5 h-3.5 text-amber-200" />
             {isExporting ? 'बन रहा है...' : 'PDF डाउनलोड'}
           </button>
         </div>
@@ -505,34 +521,34 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         </div>
       )}
 
-      {/* FLIPBOOK VIEW MODE WITH TOUCH & MOUSE SWIPE & FLIP SOUND SUPPORT */}
+      {/* FLIPBOOK VIEW MODE WITH REALTIME FLEXIBLE PAPER BEND & TOUCH SWIPE */}
       {viewMode === 'flipbook' ? (
-        <div className="space-y-4">
+        <div className="space-y-3 w-full max-w-full overflow-hidden">
           
           {/* Flipbook Controls Bar & Touch Hint */}
-          <div className="bg-white border border-amber-200 rounded-2xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-2 max-w-4xl mx-auto">
+          <div className="bg-white border border-amber-200 rounded-2xl p-2.5 sm:p-3 shadow-sm flex flex-wrap items-center justify-between gap-2 max-w-4xl mx-auto">
             
             <button
               onClick={handlePrevPage}
               disabled={currentPage === 0}
-              className="px-4 py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[40px] shadow-xs active:scale-95"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[38px] shadow-xs active:scale-95"
             >
               <ChevronLeft className="w-4 h-4 text-[#FF9933]" /> 👈 पिछला (Flip Left)
             </button>
 
             {/* Page Jump Counter & Touch Hint Badge */}
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 font-hind">
-              <span className="hidden sm:inline text-slate-600 flex items-center gap-1">
-                <MoveHorizontal className="w-3.5 h-3.5 text-[#FF9933]" /> माउस/उंगली से स्वाइप करें
+              <span className="text-slate-600 flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                <MoveHorizontal className="w-3.5 h-3.5 text-[#FF9933]" /> मोडकर स्वाइप करें
               </span>
 
-              <span className="px-3 py-1 bg-[#000080] text-white rounded-lg font-mono text-sm">
+              <span className="px-2.5 sm:px-3 py-1 bg-[#000080] text-white rounded-lg font-mono text-xs sm:text-sm">
                 {currentPage + 1} / {totalPages}
               </span>
 
               <button
                 onClick={() => setIsAutoFlipping(!isAutoFlipping)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
+                className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                   isAutoFlipping ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
                 title="Auto Flip Slideshow"
@@ -545,14 +561,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages - 1}
-              className="px-4 py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[40px] shadow-xs active:scale-95"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[38px] shadow-xs active:scale-95"
             >
               अगला (Flip Right) 👉 <ChevronRight className="w-4 h-4 text-[#FF9933]" />
             </button>
 
           </div>
 
-          {/* Interactive Touch Swipe & Mouse Drag Stage */}
+          {/* Touch Swipe & Mouse Drag Interactive Flexible Paper Stage */}
           <div
             ref={containerRef}
             onTouchStart={handleTouchStart}
@@ -562,49 +578,41 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            className="perspective-1000 max-w-4xl mx-auto relative overflow-x-auto p-2 cursor-grab active:cursor-grabbing select-none"
+            className="perspective-1000 max-w-4xl mx-auto relative w-full overflow-hidden p-1 sm:p-2 cursor-grab active:cursor-grabbing select-none flex justify-center touch-pan-y"
+            style={{ touchAction: 'pan-y' }}
           >
             
             <div
-              className="transition-transform duration-250 ease-out transform-gpu origin-left"
-              style={{
-                perspective: '1400px',
-                transformStyle: 'preserve-3d',
-                transform: computeRotationStyle()
-              }}
+              className="w-full max-w-full flex justify-center transform-gpu"
+              style={computeFlexiblePaperStyle()}
             >
               {pageChunks.length > 0 ? (
                 renderPageContent(pageChunks[currentPage], currentPage)
               ) : (
-                <div className="p-12 text-center bg-white rounded-2xl border border-amber-200">
+                <div className="p-8 text-center bg-white rounded-2xl border border-amber-200 w-full">
                   <p className="text-sm font-bold text-slate-700">कोई पृष्ठ उपलब्ध नहीं है</p>
                 </div>
               )}
             </div>
 
-            {/* Touch Hint Overlay for Mobile */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-amber-900/80 backdrop-blur-sm text-white text-[11px] font-bold rounded-full pointer-events-none opacity-90 sm:hidden flex items-center gap-1 shadow-md">
-              <MoveHorizontal className="w-3.5 h-3.5 text-amber-300" /> पेज पलटने के लिए स्वाइप करें
-            </div>
-
-            {/* Side Tap Regions */}
+            {/* Side Tap Regions for Touch Screen */}
             {currentPage > 0 && (
               <button
                 onClick={handlePrevPage}
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-10 sm:w-12 h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-r-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-24 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-r-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
                 title="पिछला पेज पलटे"
               >
-                <ChevronLeft className="w-8 h-8" />
+                <ChevronLeft className="w-6 sm:w-8 h-6 sm:h-8" />
               </button>
             )}
 
             {currentPage < totalPages - 1 && (
               <button
                 onClick={handleNextPage}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-10 sm:w-12 h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-l-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-28 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-l-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
                 title="अगला पेज पलटे"
               >
-                <ChevronRight className="w-8 h-8" />
+                <ChevronRight className="w-6 sm:w-8 h-6 sm:h-8" />
               </button>
             )}
 
@@ -618,7 +626,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         </div>
       ) : (
         /* REGULAR SCROLLING PDF VIEW MODE */
-        <div id="pdf-document-root" className="space-y-8 max-w-4xl mx-auto">
+        <div id="pdf-document-root" className="space-y-6 sm:space-y-8 max-w-4xl mx-auto w-full overflow-hidden">
           {pageChunks.length === 0 ? (
             <div className="text-center py-16 bg-white border border-dashed border-amber-200 rounded-3xl p-8">
               <Layers className="w-12 h-12 text-slate-400 mx-auto mb-3" />

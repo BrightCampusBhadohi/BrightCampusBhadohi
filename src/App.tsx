@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Question, HeaderConfig, PDFStyleConfig } from './types';
-import { INITIAL_QUESTIONS, CATEGORIES } from './data/questionsData';
+import { CATEGORIES } from './data/questionsData';
+import { MASTER_1200_QUESTIONS } from './data/upPcs2026QuestionsBank';
 import { Navbar } from './components/Navbar';
 import { QuestionCard } from './components/QuestionCard';
 import { PDFPreview } from './components/PDFPreview';
@@ -16,9 +17,12 @@ export default function App() {
   const [questions, setQuestions] = useState<Question[]>(() => {
     const saved = localStorage.getItem('bright_campus_questions');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length >= 100) return parsed;
+      } catch (e) { console.error(e); }
     }
-    return INITIAL_QUESTIONS;
+    return MASTER_1200_QUESTIONS;
   });
 
   // Header Config State
@@ -171,8 +175,8 @@ export default function App() {
   };
 
   const handleResetInitial = () => {
-    if (confirm('क्या आप प्रश्न बैंक को डिफ़ॉल्ट प्रश्नों से रीसेट करना चाहते हैं?')) {
-      setQuestions(INITIAL_QUESTIONS);
+    if (confirm('क्या आप प्रश्न बैंक को संपूर्ण 1,200 UP PCS 2026 प्रश्नों से रीसेट करना चाहते हैं?')) {
+      setQuestions(MASTER_1200_QUESTIONS);
     }
   };
 
