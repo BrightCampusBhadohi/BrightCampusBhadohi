@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-kalam {
+    font-family: 'Kalam', cursive, sans-serif;
+  }
+  .font-hind {
+    font-family: 'Hind', 'Noto Sans Devanagari', sans-serif;
+  }
+  .font-devanagari {
+    font-family: 'Noto Sans Devanagari', 'Hind', sans-serif;
+  }
+  .font-outfit {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Indian Flag Tiranga Colors */
+:root {
+  --tiranga-saffron: #ff9933;
+  --tiranga-white: #ffffff;
+  --tiranga-green: #138808;
+  --tiranga-navy: #000080;
+}
+
+/* Tiranga Gradient background utility */
+.tiranga-bg-gradient {
+  background: linear-gradient(180deg, #fff3e6 0%, #ffffff 50%, #e6f4ea 100%);
+}
+
+.tiranga-banner-gradient {
+  background: linear-gradient(135deg, #ff9933 0%, #f97316 45%, #ffffff 50%, #138808 100%);
+}
+
+/* Notebook Ruled Paper Styles */
+.notebook-ruled-paper {
+  background-color: #fdfdfd;
+  background-image: repeating-linear-gradient(#fdfdfd 0px, #fdfdfd 27px, #93c5fd 28px);
+  position: relative;
+}
+
+.notebook-ruled-paper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 42px;
+  width: 2px;
+  background-color: #ff9933; /* Saffron Margin line */
+  z-index: 10;
+}
+
+.notebook-plain-paper {
+  background-color: #ffffff;
+}
+
+.notebook-dark-paper {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.notebook-parchment-paper {
+  background-color: #fff7ed;
+  background-image: radial-gradient(#138808 0.6px, transparent 0.6px);
+  background-size: 16px 16px;
+}
+
+/* PDF Print Preview Custom Formatting */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .pdf-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ff9933;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #138808;
+}

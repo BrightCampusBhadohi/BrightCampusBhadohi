@@ -1,0 +1,6 @@
+{
+  "name": "BRIGHT CAMPUS PDF STUDIO",
+  "description": "BRIGHT CAMPUS BHADOHI - UP PCS 2026-2027 & UPSC Preparation Suite, Mobile-First PDF Generator and AI Question Bank Studio",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
