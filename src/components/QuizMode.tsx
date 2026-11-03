@@ -38,11 +38,12 @@ export const QuizMode: React.FC<QuizModeProps> = ({ questions, onExitQuiz }) => 
     );
   }
 
-  const currentQ = questions[currentIndex];
-  const selectedOption = userAnswers[currentQ.id];
+  const safeIndex = Math.min(Math.max(0, currentIndex), Math.max(0, questions.length - 1));
+  const currentQ = questions[safeIndex] || questions[0];
+  const selectedOption = currentQ ? userAnswers[currentQ.id] : undefined;
 
   const handleSelectOption = (opt: 'A' | 'B' | 'C' | 'D') => {
-    if (isSubmitted) return;
+    if (isSubmitted || !currentQ) return;
     setUserAnswers({ ...userAnswers, [currentQ.id]: opt });
   };
 

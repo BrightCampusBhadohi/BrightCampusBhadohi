@@ -1,4 +1,5 @@
 import { Question, CategoryType } from '../types';
+import { VERY_HARD_QUESTIONS } from './veryHardQuestions';
 
 // Curated Question Master Template Dataset for UP PCS Current Affairs 2026-2027
 const TOPICS_DATA: Array<{
@@ -276,4 +277,7 @@ export const generate1200UpPcsQuestions = (): Question[] => {
   return result;
 };
 
-export const MASTER_1700_QUESTIONS: Question[] = generate1200UpPcsQuestions();
+export const MASTER_1700_QUESTIONS: Question[] = [
+  ...VERY_HARD_QUESTIONS,
+  ...generate1200UpPcsQuestions()
+];

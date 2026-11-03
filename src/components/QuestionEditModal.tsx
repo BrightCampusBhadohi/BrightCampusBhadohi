@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Question, CategoryType } from '../types';
 import { CATEGORIES } from '../data/questionsData';
-import { X, Plus, Save, Sparkles } from 'lucide-react';
+import { X, Plus, Save } from 'lucide-react';
 
 interface QuestionEditModalProps {
   isOpen: boolean;
@@ -30,8 +30,6 @@ export const QuestionEditModal: React.FC<QuestionEditModalProps> = ({
     explanation: '',
     difficulty: 'Medium'
   });
-
-  const [isGeneratingAiExp, setIsGeneratingAiExp] = useState(false);
 
   useEffect(() => {
     if (initialQuestion) {
@@ -68,36 +66,6 @@ export const QuestionEditModal: React.FC<QuestionEditModalProps> = ({
     }
     onSave(formData);
     onClose();
-  };
-
-  const generateAiExplanation = async () => {
-    if (!formData.question.trim()) {
-      alert('AI व्याख्या उत्पन्न करने के लिए पहले प्रश्न लिखें!');
-      return;
-    }
-    setIsGeneratingAiExp(true);
-    try {
-      const res = await fetch('/api/generate-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: `${formData.category} - ${formData.question}`,
-          count: 1,
-          difficulty: formData.difficulty
-        })
-      });
-      const data = await res.json();
-      if (data.success && data.questions && data.questions.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          explanation: data.questions[0].explanation || prev.explanation
-        }));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsGeneratingAiExp(false);
-    }
   };
 
   return (
@@ -221,18 +189,9 @@ export const QuestionEditModal: React.FC<QuestionEditModalProps> = ({
 
           {/* Explanation in Hindi */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[#594433]">चरणबद्ध व्याख्या (Step-by-Step Hindi Explanation)</label>
-              <button
-                type="button"
-                onClick={generateAiExplanation}
-                disabled={isGeneratingAiExp}
-                className="text-xs text-[#8c5319] hover:text-[#69390c] flex items-center gap-1 font-bold transition"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#d97706]" />
-                {isGeneratingAiExp ? 'AI व्याख्या लिख रहा है...' : 'AI द्वारा व्याख्या बनाएं'}
-              </button>
-            </div>
+            <label className="block text-xs font-semibold text-[#594433] mb-1">
+              चरणबद्ध व्याख्या (स्पष्टीकरण)
+            </label>
             <textarea
               rows={3}
               value={formData.explanation}

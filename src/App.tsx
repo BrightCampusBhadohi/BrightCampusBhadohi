@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Question, HeaderConfig, PDFStyleConfig } from './types';
 import { CATEGORIES } from './data/questionsData';
 import { MASTER_1700_QUESTIONS } from './data/upPcs2026QuestionsBank';
+import { VERY_HARD_QUESTIONS } from './data/veryHardQuestions';
 import { Navbar } from './components/Navbar';
 import { QuestionCard } from './components/QuestionCard';
 import { PDFPreview } from './components/PDFPreview';
@@ -10,7 +11,8 @@ import { QuestionEditModal } from './components/QuestionEditModal';
 import { AIOCRExtractorModal } from './components/AIOCRExtractorModal';
 import { QuizMode } from './components/QuizMode';
 import { PresetsPanel } from './components/PresetsPanel';
-import { Search, Filter, Eye, SlidersHorizontal } from 'lucide-react';
+import { SarkariUpdatesModal } from './components/SarkariUpdatesModal';
+import { Filter, Eye, SlidersHorizontal, KeyRound, X } from 'lucide-react';
 
 export default function App() {
   // Main Questions State
@@ -19,11 +21,46 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.length >= 100) return parsed;
+        if (parsed && parsed.length >= 100) {
+          const existingIds = new Set(parsed.map((q: Question) => q.id));
+          const missingVeryHard = VERY_HARD_QUESTIONS.filter((vh) => !existingIds.has(vh.id));
+          return [...missingVeryHard, ...parsed];
+        }
       } catch (e) { console.error(e); }
     }
     return MASTER_1700_QUESTIONS;
   });
+
+  // Admin Authentication State
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('bright_campus_admin') === 'true';
+  });
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleAdminLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (adminPasswordInput.trim() === 'Ashok@0414') {
+      localStorage.setItem('bright_campus_admin', 'true');
+      setIsAdmin(true);
+      setIsAdminModalOpen(false);
+      setAdminPasswordInput('');
+      setAdminError('');
+    } else {
+      setAdminError('अमान्य पासवर्ड! कृपया सही एडमिन पासवर्ड दर्ज करें।');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('bright_campus_admin');
+    setIsAdmin(false);
+    if (activeTab === 'presets' || activeTab === 'ocr') {
+      setActiveTab('studio');
+    }
+    setStudioSubView('pdf-preview');
+  };
 
   // Header Config State
   const [headerConfig, setHeaderConfig] = useState<HeaderConfig>(() => {
@@ -82,11 +119,13 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedExam, setSelectedExam] = useState<string>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [showAnswersInEditor, setShowAnswersInEditor] = useState(true);
 
   // Modal States
   const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSarkariModalOpen, setIsSarkariModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Persist State Changes
@@ -115,10 +154,11 @@ export default function App() {
 
       const matchesCategory = selectedCategory === 'all' || q.category === selectedCategory;
       const matchesExam = selectedExam === 'all' || q.examFocus === selectedExam;
+      const matchesDifficulty = selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
 
-      return matchesSearch && matchesCategory && matchesExam;
+      return matchesSearch && matchesCategory && matchesExam && matchesDifficulty;
     });
-  }, [questions, searchQuery, selectedCategory, selectedExam]);
+  }, [questions, searchQuery, selectedCategory, selectedExam, selectedDifficulty]);
 
   // Question CRUD handlers
   const handleSaveQuestion = (q: Question) => {
@@ -194,6 +234,9 @@ export default function App() {
         onOpenAddModal={() => { setEditingQuestion(null); setIsEditModalOpen(true); }}
         onOpenHeaderModal={() => setIsHeaderModalOpen(true)}
         onExportPDF={() => { setActiveTab('studio'); setStudioSubView('pdf-preview'); }}
+        isAdmin={isAdmin}
+        onAdminLogout={handleAdminLogout}
+        onOpenSarkariModal={() => setIsSarkariModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -203,32 +246,11 @@ export default function App() {
         {activeTab === 'studio' && (
           <div className="space-y-6">
             
-            {/* Search & Filter Toolbar in Tan Theme */}
-            <div className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Filter Toolbar in Tan Theme */}
+            <div className="bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
               
-              {/* Search Bar */}
-              <div className="relative w-full md:w-96">
-                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="प्रश्न, उत्तर या व्याख्या खोजें..."
-                  className="w-full pl-10 pr-4 py-2 bg-[#f8f3ea] border border-[#d8c5a8] rounded-xl text-xs text-[#2c1e12] placeholder-slate-400 focus:outline-none focus:border-[#FF9933] font-devanagari"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-800 font-bold"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {/* Filters & Subview Switchers */}
-              <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-                
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2.5">
                 {/* Category Dropdown */}
                 <div className="flex items-center gap-1.5 bg-[#f8f3ea] px-3 py-1.5 rounded-xl border border-[#d8c5a8] text-xs">
                   <Filter className="w-3.5 h-3.5 text-slate-500" />
@@ -254,12 +276,30 @@ export default function App() {
                     <option value="all" className="bg-white">सभी परीक्षाएं</option>
                     <option value="UP PCS 2026-2027" className="bg-white">UP PCS 2026-2027</option>
                     <option value="UP Special" className="bg-white">UP Special</option>
+                    <option value="Army / Defence" className="bg-white">Army / Defence</option>
                     <option value="UPSC GS-1" className="bg-white">UPSC GS-1</option>
                     <option value="UPSC CSAT" className="bg-white">UPSC CSAT</option>
                   </select>
                 </div>
 
-                {/* Subview Toggle */}
+                {/* Difficulty Filter Dropdown */}
+                <div className="flex items-center gap-1.5 bg-[#f8f3ea] px-3 py-1.5 rounded-xl border border-[#d8c5a8] text-xs">
+                  <select
+                    value={selectedDifficulty}
+                    onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    className="bg-transparent text-[#b91c1c] font-black focus:outline-none cursor-pointer"
+                  >
+                    <option value="all" className="bg-white text-slate-800">सभी स्तर (कठिनाई)</option>
+                    <option value="Very Hard" className="bg-white text-red-600 font-black">🔥 अत्यंत कठिन (Very Hard)</option>
+                    <option value="Hard" className="bg-white text-amber-700 font-bold">कठिन (Hard)</option>
+                    <option value="Medium" className="bg-white text-blue-700">मध्यम (Medium)</option>
+                    <option value="Easy" className="bg-white text-green-700">सरल (Easy)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Subview Toggle - Only shown for Admin */}
+              {isAdmin && (
                 <div className="flex items-center bg-[#f8f3ea] p-1 rounded-xl border border-[#d8c5a8] text-xs font-semibold">
                   <button
                     onClick={() => setStudioSubView('pdf-preview')}
@@ -282,8 +322,7 @@ export default function App() {
                     <SlidersHorizontal className="w-3.5 h-3.5" /> प्रश्न एडिटर ({filteredQuestions.length})
                   </button>
                 </div>
-
-              </div>
+              )}
 
             </div>
 
@@ -299,6 +338,7 @@ export default function App() {
                   setEditingQuestion(q);
                   setIsEditModalOpen(true);
                 }}
+                isAdmin={isAdmin}
               />
             )}
 
@@ -412,11 +452,129 @@ export default function App() {
         initialQuestion={editingQuestion}
       />
 
-      {/* Footer Branding */}
-      <footer className="mt-auto border-t border-amber-200 bg-[#fff7ed] py-6 text-center text-xs text-slate-600 font-hind">
-        <p className="font-bold text-[#000080]">BRIGHT CAMPUS BHADOHI • UP PCS 2026-2027 & UPSC PREPARATION SUITE</p>
+      {/* Footer Branding with subtle, focusable Admin Login trigger */}
+      <footer className="mt-auto border-t border-amber-200 bg-[#fff7ed] py-6 px-4 text-center text-xs text-slate-600 font-hind">
+        <p className="font-bold text-[#000080]">BRIGHT CAMPUS BHADOHI</p>
         <p className="mt-1">📍 Chauri Rd, BADI BAGH, Bhadohi, UP | 📞 +91 87075 25421</p>
+
+        {/* Discreet Admin Login at the very bottom */}
+        <div className="mt-4 pt-3 border-t border-amber-200/50 flex items-center justify-center">
+          {isAdmin ? (
+            <div className="flex items-center gap-2.5 bg-amber-100 text-amber-900 border border-amber-300 px-3.5 py-1 rounded-full text-xs font-bold font-devanagari shadow-xs">
+              <span>👑 प्रशासक सत्र सक्रिय</span>
+              <button
+                onClick={handleAdminLogout}
+                className="text-red-700 underline font-bold hover:text-red-900 cursor-pointer ml-1"
+              >
+                लॉगआउट करें
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setAdminError('');
+                setAdminPasswordInput('');
+                setIsAdminModalOpen(true);
+              }}
+              className="opacity-20 hover:opacity-100 focus:opacity-100 text-[10px] text-slate-400 hover:text-[#000080] focus:text-[#000080] outline-none transition-all duration-200 px-2 py-0.5 rounded cursor-pointer font-devanagari select-none"
+              title="प्रशासक लॉगिन"
+              tabIndex={0}
+            >
+              🔐 व्यवस्थापक / एडमिन प्रवेश
+            </button>
+          )}
+        </div>
       </footer>
+
+      {/* Admin Login Modal */}
+      {isAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full border border-amber-200 overflow-hidden font-hind">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#FF9933] via-amber-500 to-[#138808] p-1">
+              <div className="bg-white p-5 rounded-t-[22px] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+                    <KeyRound className="w-5 h-5 text-[#FF9933]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-[#000080] leading-tight font-devanagari">
+                      प्रशासक लॉगिन (एडमिन)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      सेटिंग्स, कलम, कागज़, हेडर एवं AI OCR नियंत्रण
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAdminModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAdminLogin} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 font-devanagari">
+                  प्रशासक पासवर्ड दर्ज करें:
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={adminPasswordInput}
+                    onChange={(e) => {
+                      setAdminPasswordInput(e.target.value);
+                      if (adminError) setAdminError('');
+                    }}
+                    placeholder="पासवर्ड लिखें..."
+                    autoFocus
+                    className="w-full px-4 py-2.5 bg-[#f8f3ea] border border-[#d8c5a8] rounded-xl text-sm text-[#2c1e12] focus:outline-none focus:border-[#FF9933] font-mono tracking-wider"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-800 font-bold"
+                  >
+                    {showPassword ? 'छिपाएं' : 'दिखाएं'}
+                  </button>
+                </div>
+              </div>
+
+              {adminError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-bold flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{adminError}</span>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  रद्द करें
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-[#FF9933] to-[#ea580c] hover:opacity-95 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
+                >
+                  लॉगिन करें
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sarkari Result, Admit Card & Job Notifications Modal */}
+      <SarkariUpdatesModal
+        isOpen={isSarkariModalOpen}
+        onClose={() => setIsSarkariModalOpen(false)}
+      />
 
     </div>
   );

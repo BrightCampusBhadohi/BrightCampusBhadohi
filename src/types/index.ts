@@ -10,7 +10,7 @@ export interface Question {
   category: CategoryType;
   examFocus: 'UP PCS 2026-2027' | 'UPSC GS-1' | 'UPSC CSAT' | 'UP Special' | 'SSC CGL' | 'Railway' | 'Banking' | 'Teaching';
   explanation: string;
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: 'Easy' | 'Medium' | 'Hard' | 'Very Hard';
   year?: string;
   bookmarked?: boolean;
 }

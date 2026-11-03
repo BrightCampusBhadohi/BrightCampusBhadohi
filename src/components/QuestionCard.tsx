@@ -44,6 +44,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-[#000080] border border-indigo-200 font-bold">
             {question.examFocus}
           </span>
+          {question.difficulty === 'Very Hard' && (
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-300 font-bold">
+              🔥 अत्यंत कठिन
+            </span>
+          )}
           {question.code && (
             <span className="text-[10px] text-slate-400 font-mono">
               #{question.code}
@@ -108,7 +113,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* Question Statement */}
-      <h3 className="text-base font-bold text-slate-900 mb-4 leading-relaxed font-devanagari">
+      <h3 className="text-base font-bold text-slate-900 mb-4 leading-relaxed font-devanagari whitespace-pre-line">
         Q{index + 1}. {question.question}
       </h3>
 
