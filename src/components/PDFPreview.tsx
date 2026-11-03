@@ -1,8 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Question, HeaderConfig, PDFStyleConfig } from '../types';
-import { Download, Sparkles, Printer, Layers, Eye, EyeOff, BookOpen, ChevronLeft, ChevronRight, Play, Pause, Bookmark, Volume2, VolumeX, MoveHorizontal, Settings, Maximize2, Minimize2 } from 'lucide-react';
+import { Download, Sparkles, Printer, Layers, Eye, EyeOff, BookOpen, ChevronLeft, ChevronRight, Play, Pause, Bookmark, Volume2, VolumeX, MoveHorizontal, Settings, Maximize2, Minimize2, Calculator } from 'lucide-react';
 import { generatePDF } from '../utils/pdfGenerator';
 import { playPageFlipSound } from '../utils/audio';
+
+const PAGE_TINTS = [
+  '#ffffff', // Page 1: pure white
+  '#f8fafc', // Page 2: subtle slate tint
+  '#fffdfa', // Page 3: subtle warm ivory tint
+  '#f4f9ff', // Page 4: subtle sky tint
+  '#fdf8f5', // Page 5: subtle warm blush tint
+  '#f5fcf7', // Page 6: subtle mint tint
+];
 
 interface PDFPreviewProps {
   questions: Question[];
@@ -11,6 +20,7 @@ interface PDFPreviewProps {
   onUpdateStyleConfig: (config: PDFStyleConfig) => void;
   onOpenHeaderModal: () => void;
   onEditQuestion?: (question: Question) => void;
+  onOpenMathsFormulas?: () => void;
   isAdmin?: boolean;
 }
 
@@ -21,6 +31,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   onUpdateStyleConfig,
   onOpenHeaderModal,
   onEditQuestion,
+  onOpenMathsFormulas,
   isAdmin = false
 }) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -32,9 +43,13 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev'>('next');
+  const [turningPageFrom, setTurningPageFrom] = useState<number | null>(null);
+  const [turningPageTo, setTurningPageTo] = useState<number | null>(null);
+  const [flipTurnAngle, setFlipTurnAngle] = useState<number>(0);
   const [isAutoFlipping, setIsAutoFlipping] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [flipSpeed, setFlipSpeed] = useState<'slow' | 'medium'>('slow');
 
   // Fullscreen State
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -194,32 +209,67 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
     }
   };
 
+  const getFlipDuration = () => (flipSpeed === 'slow' ? 2200 : 1200);
+
   const handleNextPage = () => {
-    if (safeCurrentPage < totalPages - 1) {
-      triggerSound();
-      setFlipDirection('next');
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
-        setIsFlipping(false);
-        setDragOffset(0);
-      }, 320);
-    } else if (isAutoFlipping) {
-      setIsAutoFlipping(false);
+    if (isFlipping || safeCurrentPage >= totalPages - 1) {
+      if (isAutoFlipping) setIsAutoFlipping(false);
+      return;
     }
+    const duration = getFlipDuration();
+    const fromPage = safeCurrentPage;
+    const toPage = safeCurrentPage + 1;
+    triggerSound();
+    setFlipDirection('next');
+    setTurningPageFrom(fromPage);
+    setTurningPageTo(toPage);
+    setIsFlipping(true);
+    setFlipTurnAngle(0);
+
+    // Animate turning leaf slowly rotating away toward left into spine over 2.2s
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setFlipTurnAngle(-180);
+      });
+    });
+
+    setTimeout(() => {
+      setCurrentPage(toPage);
+      setIsFlipping(false);
+      setTurningPageFrom(null);
+      setTurningPageTo(null);
+      setFlipTurnAngle(0);
+      setDragOffset(0);
+    }, duration + 80);
   };
 
   const handlePrevPage = () => {
-    if (safeCurrentPage > 0) {
-      triggerSound();
-      setFlipDirection('prev');
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentPage((prev) => Math.max(0, prev - 1));
-        setIsFlipping(false);
-        setDragOffset(0);
-      }, 320);
-    }
+    if (isFlipping || safeCurrentPage <= 0) return;
+    const duration = getFlipDuration();
+    const fromPage = safeCurrentPage;
+    const toPage = safeCurrentPage - 1;
+    triggerSound();
+    setFlipDirection('prev');
+    setTurningPageFrom(fromPage);
+    setTurningPageTo(toPage);
+    setIsFlipping(true);
+    setFlipTurnAngle(-180);
+
+    // Animate leaf returning slowly from left spine onto the book over 2.2s
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setFlipTurnAngle(0);
+      });
+    });
+
+    setTimeout(() => {
+      setCurrentPage(toPage);
+      setIsFlipping(false);
+      setTurningPageFrom(null);
+      setTurningPageTo(null);
+      setFlipTurnAngle(0);
+      setDragOffset(0);
+    }, duration + 80);
   };
 
   // --- TOUCH SWIPE & MOUSE DRAG FLEXIBLE BEND HANDLERS ---
@@ -330,20 +380,12 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
   // Compute Flexible Bending Paper 3D Transform
   const computeFlexiblePaperStyle = () => {
-    if (isFlipping) {
-      // 180 degrees turn for full page flip
-      const angle = flipDirection === 'next' ? -180 : 180;
-      return {
-        transform: `perspective(2000px) rotateY(${angle}deg) scale(1)`,
-        transition: 'transform 0.4s cubic-bezier(0.3, 0, 0.1, 1)'
-      };
-    }
     if (isDragging && dragOffset !== 0) {
       // Calculate dynamic paper flex angle based on finger/mouse distance
-      const flexAngle = Math.min(Math.max((dragOffset / 200) * 70, -80), 80);
-      const flexSkew = flexAngle * 0.12; // Realistic paper bending curvature
+      const flexAngle = Math.min(Math.max((dragOffset / 200) * 45, -50), 50);
+      const flexSkew = flexAngle * 0.1; // Realistic paper bending curvature
       return {
-        transform: `perspective(1400px) rotateY(${flexAngle}deg) skewY(${flexSkew}deg) scale(${1 - Math.abs(flexAngle) * 0.0025})`,
+        transform: `perspective(1400px) rotateY(${flexAngle}deg) skewY(${flexSkew}deg) scale(${1 - Math.abs(flexAngle) * 0.002})`,
         transition: 'none'
       };
     }
@@ -354,29 +396,50 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   };
 
   // Render a single page content unit with Flexible Bending Paper Physics & Spine Shadow
-  const renderPageContent = (chunk: Question[] = [], pageIndex: number) => {
+  const renderPageContent = (chunk: Question[] = [], pageIndex: number, isPdfExport = false) => {
     const safeChunk = Array.isArray(chunk) ? chunk : [];
+    const pageBgTint = (!isPdfExport && styleConfig.paperTheme === 'plain')
+      ? PAGE_TINTS[pageIndex % PAGE_TINTS.length]
+      : undefined;
+
     return (
     <div
       key={pageIndex}
       onClick={(e) => {
         // Clicking page triggers fullscreen as requested by user
-        if (!isFullscreen) {
+        if (!isPdfExport && !isFullscreen) {
           toggleFullscreen(true);
         }
       }}
-      className={`pdf-page-unit ${getPaperClass()} border border-slate-300 rounded-sm mx-auto p-3 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none w-[95vw] sm:w-[794px] min-h-[400px] sm:min-h-[auto] cursor-pointer group/page`}
-      title={isFullscreen ? "पृष्ठ (फुल स्क्रीन सक्रिय)" : "फुल स्क्रीन करने के लिए पेज पर कहीं भी क्लिक करें"}
+      className={`pdf-page-unit ${getPaperClass()} border border-slate-300 rounded-sm mx-auto p-3 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none w-[95vw] sm:w-[794px] min-h-[400px] sm:min-h-[auto] ${!isPdfExport ? 'cursor-pointer group/page shadow-xl' : 'bg-white'}`}
+      title={!isPdfExport ? (isFullscreen ? "पृष्ठ (फुल स्क्रीन सक्रिय)" : "फुल स्क्रीन करने के लिए पेज पर कहीं भी क्लिक करें") : undefined}
       style={{
         boxSizing: 'border-box',
         color: styleConfig.inkColor,
         fontWeight: styleConfig.fontWeight === 'bold-900' ? 900 : 700,
-        boxShadow: '-10px 0 25px rgba(0,0,0,0.15), 10px 0 20px rgba(0,0,0,0.08), inset 22px 0 32px -10px rgba(0,0,0,0.18)',
+        backgroundColor: isPdfExport ? '#ffffff' : pageBgTint,
+        boxShadow: isPdfExport ? 'none' : '-10px 0 25px rgba(0,0,0,0.15), 10px 0 20px rgba(0,0,0,0.08), inset 22px 0 32px -10px rgba(0,0,0,0.18)',
         transformOrigin: 'left center'
       }}
     >
+      {/* Glossy Laminated Plastic Sheen Layer (Preview Mode Only - Hidden in PDF Export) */}
+      {!isPdfExport && (
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-sm select-none">
+          {/* Laminated Gloss Reflection */}
+          <div
+            className="absolute inset-0 opacity-35 mix-blend-overlay"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.25) 75%, rgba(255,255,255,0.75) 100%)'
+            }}
+          />
+          {/* High-Gloss Top Edge Line */}
+          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-white/30 via-white/80 to-white/30" />
+          <div className="absolute inset-0 border border-white/60 rounded-sm pointer-events-none shadow-inner" />
+        </div>
+      )}
+
       {/* Fullscreen Hint Badge in top-left */}
-      {!isFullscreen && (
+      {!isPdfExport && !isFullscreen && (
         <div className="absolute top-2 left-3 z-30 opacity-40 group-hover/page:opacity-100 transition-opacity text-[10px] text-[#000080] bg-white/95 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 shadow-xs pointer-events-none">
           <Maximize2 className="w-3 h-3 text-[#FF9933]" />
           <span>क्लिक करें: फुल स्क्रीन</span>
@@ -659,6 +722,16 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {onOpenMathsFormulas && (
+            <button
+              onClick={onOpenMathsFormulas}
+              className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-[#FF9933] hover:opacity-95 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-xs transition cursor-pointer"
+              title="गणित सूत्र व आसान ट्रिक्स"
+            >
+              <Calculator className="w-3.5 h-3.5" /> गणित सूत्र
+            </button>
+          )}
+
           {isAdmin && (
             <button
               onClick={onOpenHeaderModal}
@@ -743,6 +816,17 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 {safeQuestions.length > 0 ? safeCurrentPage + 1 : 0} / {totalPages}
               </span>
 
+              {onOpenMathsFormulas && (
+                <button
+                  onClick={onOpenMathsFormulas}
+                  className="px-2.5 sm:px-3 py-1 bg-amber-100 hover:bg-amber-200 text-[#ea580c] rounded-lg text-xs font-bold flex items-center gap-1 transition border border-amber-300"
+                  title="गणित सूत्र व आसान ट्रिक्स"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-[#FF9933]" />
+                  <span>गणित सूत्र</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setIsAutoFlipping(!isAutoFlipping)}
                 className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
@@ -799,16 +883,21 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            className="perspective-1000 max-w-4xl mx-auto relative w-full overflow-hidden p-1 sm:p-2 cursor-grab active:cursor-grabbing select-none flex justify-center touch-pan-y"
+            className="perspective-1000 max-w-4xl mx-auto relative w-full overflow-hidden p-1 sm:p-2 cursor-grab active:cursor-grabbing select-none flex justify-center touch-pan-y min-h-[500px]"
             style={{ touchAction: 'pan-y' }}
           >
             
+            {/* Base Layer: Displays Target / Destination Page */}
             <div
               className="w-full max-w-full flex justify-center transform-gpu"
               style={computeFlexiblePaperStyle()}
             >
-              {pageChunks.length > 0 && pageChunks[safeCurrentPage] ? (
-                renderPageContent(pageChunks[safeCurrentPage], safeCurrentPage)
+              {pageChunks.length > 0 && pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage] ? (
+                renderPageContent(
+                  pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage],
+                  isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage,
+                  false
+                )
               ) : (
                 <div className="p-8 text-center bg-white rounded-2xl border border-amber-200 w-full max-w-xl mx-auto shadow-sm">
                   <p className="text-base font-bold text-slate-700">कोई प्रश्न उपलब्ध नहीं है</p>
@@ -816,6 +905,31 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Top 3D Turning Leaf Layer: Flips page VERY SLOWLY (2.2s) & CLEARLY over spine onto left side */}
+            {isFlipping && turningPageFrom !== null && pageChunks[turningPageFrom] && (
+              <>
+                <div
+                  className="absolute inset-0 flex justify-center pointer-events-none z-30 transform-gpu"
+                  style={{
+                    transformOrigin: flipDirection === 'next' ? 'left center' : 'right center',
+                    transform: `perspective(2000px) rotateY(${flipTurnAngle}deg)`,
+                    transition: `transform ${getFlipDuration() / 1000}s cubic-bezier(0.35, 0, 0.15, 1), opacity 0.5s ease`,
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    opacity: Math.abs(flipTurnAngle) > 150 ? 0 : 1,
+                  }}
+                >
+                  {renderPageContent(pageChunks[turningPageFrom], turningPageFrom, false)}
+                </div>
+
+                {/* Page Turning Visible Pill Badge Overlay */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#000080] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-2xl z-40 border-2 border-amber-300 animate-bounce flex items-center gap-2 pointer-events-none">
+                  <span className="animate-spin text-amber-300">📖</span>
+                  <span>धीमे से पृष्ठ पलट रहा है... (पृष्ठ {turningPageFrom + 1} ➔ {turningPageTo !== null ? turningPageTo + 1 : ''})</span>
+                </div>
+              </>
+            )}
 
             {/* Side Tap Regions for Touch Screen */}
             {safeCurrentPage > 0 && (
@@ -840,14 +954,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
           </div>
 
-          {/* Hidden Root for Full PDF Export */}
+          {/* Hidden Root for Full PDF Export - GUARANTEED PURE WHITE (#ffffff) */}
           <div id="pdf-document-root" className="hidden">
-            {pageChunks.map((chunk, idx) => renderPageContent(chunk || [], idx))}
+            {pageChunks.map((chunk, idx) => renderPageContent(chunk || [], idx, true /* isPdfExport */))}
           </div>
 
         </div>
       ) : (
-        /* REGULAR SCROLLING PDF VIEW MODE */
+        /* REGULAR SCROLLING PDF VIEW MODE - GUARANTEED PURE WHITE FOR PDF EXPORT */
         <div id="pdf-document-root" className="space-y-6 sm:space-y-8 max-w-4xl mx-auto w-full overflow-hidden">
           {pageChunks.length === 0 ? (
             <div className="text-center py-16 bg-white border border-dashed border-amber-200 rounded-3xl p-8">
@@ -856,7 +970,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               <p className="text-sm text-slate-500">PDF देखने के लिए ऊपर प्रश्न चुनें या नया प्रश्न जोड़ें।</p>
             </div>
           ) : (
-            pageChunks.map((chunk, pageIndex) => renderPageContent(chunk || [], pageIndex))
+            pageChunks.map((chunk, pageIndex) => renderPageContent(chunk || [], pageIndex, true /* isPdfExport */))
           )}
         </div>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ScanLine, Award, Sparkles, Plus, Download, GraduationCap } from 'lucide-react';
+import { FileText, ScanLine, Award, Sparkles, Plus, Download, GraduationCap, Calculator } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'studio' | 'quiz' | 'ocr' | 'presets';
@@ -10,7 +10,7 @@ interface NavbarProps {
   onExportPDF: () => void;
   isAdmin: boolean;
   onAdminLogout: () => void;
-  onOpenSarkariModal?: () => void;
+  onOpenMathsModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -22,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportPDF,
   isAdmin,
   onAdminLogout,
-  onOpenSarkariModal
+  onOpenMathsModal
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-200 shadow-sm">
@@ -102,16 +102,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Controls */}
           <div className="flex items-center gap-1.5">
-            {/* Sarkari Result & Latest Vacancy Module Button */}
-            {onOpenSarkariModal && (
+            {/* Maths Formulas Button */}
+            {onOpenMathsModal && (
               <button
-                onClick={onOpenSarkariModal}
-                className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-red-600 via-[#ea580c] to-[#138808] hover:opacity-95 text-white text-xs font-black rounded-lg flex items-center gap-1.5 shadow-md transition cursor-pointer"
-                title="सरकारी रिजल्ट, एडमिट कार्ड व नवीनतम सरकारी नौकरी सूचना"
+                onClick={onOpenMathsModal}
+                className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-500 via-[#ea580c] to-[#000080] hover:opacity-95 text-white text-xs font-black rounded-lg flex items-center gap-1 shadow-md transition cursor-pointer"
+                title="गणित आसान सूत्र एवं शॉर्ट-ट्रिक्स"
               >
-                <span>📢</span>
-                <span className="tracking-tight">सरकारी रिजल्ट</span>
-                <span className="hidden sm:inline text-[10px] bg-white text-red-600 font-black px-1.5 py-0.5 rounded-full uppercase">लाइव</span>
+                <Calculator className="w-3.5 h-3.5" />
+                <span className="tracking-tight">गणित सूत्र</span>
               </button>
             )}
 
@@ -153,16 +152,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button onClick={() => setActiveTab('studio')} className={`flex flex-col items-center gap-0.5 ${activeTab === 'studio' ? 'text-[#FF9933]' : 'text-slate-600'}`}>
             <GraduationCap className="w-4 h-4" /> क्लास
           </button>
-          {onOpenSarkariModal && (
-            <button
-              onClick={onOpenSarkariModal}
-              className="flex flex-col items-center gap-0.5 text-red-600 font-bold hover:text-red-700"
-              title="सरकारी रिजल्ट, प्रवेश पत्र व भर्ती"
-            >
-              <span className="text-sm leading-none">📢</span>
-              <span>रिजल्ट/भर्ती</span>
-            </button>
-          )}
           {isAdmin && (
             <>
               <button onClick={() => setActiveTab('presets')} className={`flex flex-col items-center gap-0.5 ${activeTab === 'presets' ? 'text-[#FF9933]' : 'text-slate-600'}`}>

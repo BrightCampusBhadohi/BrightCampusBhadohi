@@ -11,24 +11,43 @@ import { QuestionEditModal } from './components/QuestionEditModal';
 import { AIOCRExtractorModal } from './components/AIOCRExtractorModal';
 import { QuizMode } from './components/QuizMode';
 import { PresetsPanel } from './components/PresetsPanel';
-import { SarkariUpdatesModal } from './components/SarkariUpdatesModal';
+import { MathsFormulasModal } from './components/MathsFormulasModal';
 import { Filter, Eye, SlidersHorizontal, KeyRound, X } from 'lucide-react';
 
+// De-duplication helper guaranteeing zero repeated questions in the entire app
+export function deduplicateQuestions(list: Question[]): Question[] {
+  const seenIds = new Set<string>();
+  const seenTexts = new Set<string>();
+  const result: Question[] = [];
+
+  for (const q of list) {
+    if (!q || !q.question) continue;
+    // Normalize question text to detect duplicate questions regardless of subtle spacing
+    const normalizedText = q.question.trim().replace(/\s+/g, ' ').toLowerCase();
+    
+    if (seenIds.has(q.id) || seenTexts.has(normalizedText)) {
+      continue; // Skip duplicate question
+    }
+    seenIds.add(q.id);
+    seenTexts.add(normalizedText);
+    result.push(q);
+  }
+  return result;
+}
+
 export default function App() {
-  // Main Questions State
+  // Main Questions State - strictly de-duplicated with zero repeated questions
   const [questions, setQuestions] = useState<Question[]>(() => {
     const saved = localStorage.getItem('bright_campus_questions');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.length >= 100) {
-          const existingIds = new Set(parsed.map((q: Question) => q.id));
-          const missingVeryHard = VERY_HARD_QUESTIONS.filter((vh) => !existingIds.has(vh.id));
-          return [...missingVeryHard, ...parsed];
+        if (parsed && Array.isArray(parsed) && parsed.length >= 50) {
+          return deduplicateQuestions([...VERY_HARD_QUESTIONS, ...parsed]);
         }
       } catch (e) { console.error(e); }
     }
-    return MASTER_1700_QUESTIONS;
+    return deduplicateQuestions(MASTER_1700_QUESTIONS);
   });
 
   // Admin Authentication State
@@ -125,7 +144,7 @@ export default function App() {
   // Modal States
   const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSarkariModalOpen, setIsSarkariModalOpen] = useState(false);
+  const [isMathsModalOpen, setIsMathsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Persist State Changes
@@ -141,9 +160,9 @@ export default function App() {
     localStorage.setItem('bright_campus_style', JSON.stringify(styleConfig));
   }, [styleConfig]);
 
-  // Filtered Questions list
+  // Filtered Questions list - strictly unique and deduplicated
   const filteredQuestions = useMemo(() => {
-    return questions.filter((q) => {
+    const list = questions.filter((q) => {
       const matchesSearch = searchQuery === '' || 
         q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
         q.optionA.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -158,18 +177,23 @@ export default function App() {
 
       return matchesSearch && matchesCategory && matchesExam && matchesDifficulty;
     });
+
+    return deduplicateQuestions(list);
   }, [questions, searchQuery, selectedCategory, selectedExam, selectedDifficulty]);
 
   // Question CRUD handlers
   const handleSaveQuestion = (q: Question) => {
     setQuestions((prev) => {
       const idx = prev.findIndex((item) => item.id === q.id);
+      let updated: Question[];
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = q;
-        return copy;
+        updated = copy;
+      } else {
+        updated = [q, ...prev];
       }
-      return [q, ...prev];
+      return deduplicateQuestions(updated);
     });
   };
 
@@ -184,9 +208,9 @@ export default function App() {
       ...q,
       id: `dup-${Date.now()}-${Math.floor(Math.random() * 100)}`,
       code: `${q.code || 'Q'}-COPY`,
-      question: `${q.question} (प्रतिलिपि)`
+      question: `${q.question} (अभ्यास प्रतिलिपि ${Math.floor(Math.random() * 1000)})`
     };
-    setQuestions((prev) => [dup, ...prev]);
+    setQuestions((prev) => deduplicateQuestions([dup, ...prev]));
   };
 
   const handleMoveUp = (index: number) => {
@@ -212,14 +236,16 @@ export default function App() {
   };
 
   const handleImportOcrQuestions = (imported: Question[]) => {
-    setQuestions((prev) => [...imported, ...prev]);
+    setQuestions((prev) => deduplicateQuestions([...imported, ...prev]));
     setActiveTab('studio');
     setStudioSubView('pdf-preview');
   };
 
   const handleResetInitial = () => {
     if (confirm('क्या आप प्रश्न बैंक को संपूर्ण 1,700 प्रश्नों से रीसेट करना चाहते हैं?')) {
-      setQuestions(MASTER_1700_QUESTIONS);
+      const unique = deduplicateQuestions(MASTER_1700_QUESTIONS);
+      setQuestions(unique);
+      localStorage.setItem('bright_campus_questions', JSON.stringify(unique));
     }
   };
 
@@ -236,7 +262,7 @@ export default function App() {
         onExportPDF={() => { setActiveTab('studio'); setStudioSubView('pdf-preview'); }}
         isAdmin={isAdmin}
         onAdminLogout={handleAdminLogout}
-        onOpenSarkariModal={() => setIsSarkariModalOpen(true)}
+        onOpenMathsModal={() => setIsMathsModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -338,6 +364,7 @@ export default function App() {
                   setEditingQuestion(q);
                   setIsEditModalOpen(true);
                 }}
+                onOpenMathsFormulas={() => setIsMathsModalOpen(true)}
                 isAdmin={isAdmin}
               />
             )}
@@ -570,10 +597,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Sarkari Result, Admit Card & Job Notifications Modal */}
-      <SarkariUpdatesModal
-        isOpen={isSarkariModalOpen}
-        onClose={() => setIsSarkariModalOpen(false)}
+      {/* Maths Easy Formulas & Short Tricks Modal */}
+      <MathsFormulasModal
+        isOpen={isMathsModalOpen}
+        onClose={() => setIsMathsModalOpen(false)}
       />
 
     </div>
