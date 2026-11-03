@@ -8,7 +8,7 @@ export interface Question {
   optionD: string;
   answerKey: 'A' | 'B' | 'C' | 'D';
   category: CategoryType;
-  examFocus: 'UP PCS 2026-2027' | 'UPSC GS-1' | 'UPSC CSAT' | 'UP Special';
+  examFocus: 'UP PCS 2026-2027' | 'UPSC GS-1' | 'UPSC CSAT' | 'UP Special' | 'SSC CGL' | 'Railway' | 'Banking' | 'Teaching';
   explanation: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   year?: string;
@@ -29,7 +29,11 @@ export type CategoryType =
   | 'GS Polity'
   | 'GS History'
   | 'GS Geography'
-  | 'GS Environment';
+  | 'GS Environment'
+  | 'SSC'
+  | 'Railway'
+  | 'Banking'
+  | 'Teaching';
 
 export interface HeaderConfig {
   instituteName: string;

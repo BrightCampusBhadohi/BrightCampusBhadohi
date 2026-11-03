@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Question, HeaderConfig, PDFStyleConfig } from './types';
 import { CATEGORIES } from './data/questionsData';
-import { MASTER_1200_QUESTIONS } from './data/upPcs2026QuestionsBank';
+import { MASTER_1700_QUESTIONS } from './data/upPcs2026QuestionsBank';
 import { Navbar } from './components/Navbar';
 import { QuestionCard } from './components/QuestionCard';
 import { PDFPreview } from './components/PDFPreview';
@@ -22,7 +22,7 @@ export default function App() {
         if (parsed && parsed.length >= 100) return parsed;
       } catch (e) { console.error(e); }
     }
-    return MASTER_1200_QUESTIONS;
+    return MASTER_1700_QUESTIONS;
   });
 
   // Header Config State
@@ -55,12 +55,15 @@ export default function App() {
   const [styleConfig, setStyleConfig] = useState<PDFStyleConfig>(() => {
     const saved = localStorage.getItem('bright_campus_style');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...parsed, paperTheme: 'plain' };
+      } catch (e) { console.error(e); }
     }
     return {
       fontStyle: 'kalam',
       fontWeight: 'bold-900',
-      paperTheme: 'ruled',
+      paperTheme: 'plain', // Crisp Clean White Paper
       inkColor: '#1e40af', // Royal Blue
       questionsPerPage: 3, // Mobile optimized 3 Qs per page
       layoutMode: 'portrait-single',
@@ -175,8 +178,8 @@ export default function App() {
   };
 
   const handleResetInitial = () => {
-    if (confirm('क्या आप प्रश्न बैंक को संपूर्ण 1,200 UP PCS 2026 प्रश्नों से रीसेट करना चाहते हैं?')) {
-      setQuestions(MASTER_1200_QUESTIONS);
+    if (confirm('क्या आप प्रश्न बैंक को संपूर्ण 1,700 प्रश्नों से रीसेट करना चाहते हैं?')) {
+      setQuestions(MASTER_1700_QUESTIONS);
     }
   };
 
@@ -292,6 +295,10 @@ export default function App() {
                 styleConfig={styleConfig}
                 onUpdateStyleConfig={setStyleConfig}
                 onOpenHeaderModal={() => setIsHeaderModalOpen(true)}
+                onEditQuestion={(q) => {
+                  setEditingQuestion(q);
+                  setIsEditModalOpen(true);
+                }}
               />
             )}
 

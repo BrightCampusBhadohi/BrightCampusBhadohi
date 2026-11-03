@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Question, HeaderConfig, PDFStyleConfig } from '../types';
-import { Download, Sparkles, Printer, Layers, Eye, EyeOff, BookOpen, ChevronLeft, ChevronRight, Play, Pause, Bookmark, Volume2, VolumeX, MoveHorizontal } from 'lucide-react';
+import { Download, Sparkles, Printer, Layers, Eye, EyeOff, BookOpen, ChevronLeft, ChevronRight, Play, Pause, Bookmark, Volume2, VolumeX, MoveHorizontal, Settings } from 'lucide-react';
 import { generatePDF } from '../utils/pdfGenerator';
 import { playPageFlipSound } from '../utils/audio';
 
@@ -10,6 +10,7 @@ interface PDFPreviewProps {
   styleConfig: PDFStyleConfig;
   onUpdateStyleConfig: (config: PDFStyleConfig) => void;
   onOpenHeaderModal: () => void;
+  onEditQuestion?: (question: Question) => void;
 }
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({
@@ -17,7 +18,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   headerConfig,
   styleConfig,
   onUpdateStyleConfig,
-  onOpenHeaderModal
+  onOpenHeaderModal,
+  onEditQuestion
 }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [progressStatus, setProgressStatus] = useState('');
@@ -30,6 +32,75 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev'>('next');
   const [isAutoFlipping, setIsAutoFlipping] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Voice Assistant State
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  // Use refs for tracking to avoid stale closures during speech synthesis callbacks
+  const readingIndexRef = useRef(0);
+  const isSpeakingRef = useRef(false);
+  const synth = window.speechSynthesis;
+
+  const speakQuestion = () => {
+    const globalIndex = readingIndexRef.current;
+    
+    if (globalIndex >= questions.length || !isSpeakingRef.current) {
+      setIsSpeaking(false);
+      isSpeakingRef.current = false;
+      return;
+    }
+    
+    if (synth.speaking) synth.cancel();
+    
+    const q = questions[globalIndex];
+    const textToSpeak = `प्रश्न संख्या ${globalIndex + 1}: ${q.question}. विकल्प: (A) ${q.optionA}, (B) ${q.optionB}, (C) ${q.optionC}, (D) ${q.optionD}. सही उत्तर है: ${q.answerKey}. व्याख्या: ${q.explanation}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'hi-IN';
+    utterance.rate = 1.3; 
+    utterance.pitch = 1.0;
+    
+    const voices = synth.getVoices();
+    const voice = voices.find(v => v.lang.startsWith('hi') && (v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Microsoft')));
+    if (voice) utterance.voice = voice;
+
+    utterance.onend = () => {
+      if (!isSpeakingRef.current) return;
+
+      if (readingIndexRef.current < questions.length - 1) {
+        readingIndexRef.current += 1;
+        const nextPageIndex = Math.floor(readingIndexRef.current / qPerPage);
+        
+        // Update page if necessary
+        if (nextPageIndex !== currentPage) {
+          setCurrentPage(nextPageIndex);
+          // Wait for page transition rendering to finish
+          setTimeout(() => speakQuestion(), 1500);
+        } else {
+          // Continuous reading
+          setTimeout(() => speakQuestion(), 200);
+        }
+      } else {
+        setIsSpeaking(false);
+        isSpeakingRef.current = false;
+      }
+    };
+    synth.speak(utterance);
+  };
+
+  const toggleVoiceAssistant = () => {
+    if (isSpeakingRef.current) {
+      setIsSpeaking(false);
+      isSpeakingRef.current = false;
+      synth.cancel();
+    } else {
+      setIsSpeaking(true);
+      isSpeakingRef.current = true;
+      readingIndexRef.current = currentPage * qPerPage;
+      speakQuestion();
+    }
+  };
 
   // Gesture State for Touch Swipe & Mouse Drag Flexible Page Bend
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
@@ -190,21 +261,21 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   const getPaperClass = () => {
     switch (styleConfig.paperTheme) {
       case 'ruled': return 'notebook-ruled-paper';
-      case 'plain': return 'notebook-plain-paper';
+      case 'plain': return 'bg-white notebook-plain-paper';
       case 'grid': return 'bg-white bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]';
       case 'parchment': return 'notebook-parchment-paper';
-      default: return 'notebook-ruled-paper';
+      default: return 'bg-white notebook-plain-paper';
     }
   };
 
   // Compute Flexible Bending Paper 3D Transform
   const computeFlexiblePaperStyle = () => {
     if (isFlipping) {
-      const angle = flipDirection === 'next' ? -65 : 65;
-      const skew = flipDirection === 'next' ? -8 : 8;
+      // 180 degrees turn for full page flip
+      const angle = flipDirection === 'next' ? -180 : 180;
       return {
-        transform: `perspective(1400px) rotateY(${angle}deg) skewY(${skew}deg) scale(0.96)`,
-        transition: 'transform 0.32s cubic-bezier(0.25, 1, 0.5, 1)'
+        transform: `perspective(2000px) rotateY(${angle}deg) scale(1)`,
+        transition: 'transform 0.4s cubic-bezier(0.3, 0, 0.1, 1)'
       };
     }
     if (isDragging && dragOffset !== 0) {
@@ -226,7 +297,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
   const renderPageContent = (chunk: Question[], pageIndex: number) => (
     <div
       key={pageIndex}
-      className={`pdf-page-unit ${getPaperClass()} border border-amber-300/80 rounded-sm mx-auto p-4 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none w-full max-w-full sm:max-w-[794px]`}
+      className={`pdf-page-unit ${getPaperClass()} border border-slate-300 rounded-sm mx-auto p-3 sm:p-8 text-slate-900 transition-all font-bold relative overflow-hidden select-none w-[95vw] sm:w-[794px] min-h-[400px] sm:min-h-[auto]`}
       style={{
         boxSizing: 'border-box',
         color: styleConfig.inkColor,
@@ -277,7 +348,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           
           {/* Top Institute Header */}
           <div className="text-center space-y-1">
-            <h1 className="text-lg sm:text-2xl font-black tracking-wide uppercase font-outfit text-[#000080]">
+            <h1 className="text-2xl sm:text-4xl font-black tracking-wide uppercase font-outfit text-[#000080]">
               {headerConfig.instituteName}
             </h1>
             <p className="text-[11px] sm:text-xs font-semibold text-slate-700 font-hind">
@@ -326,10 +397,28 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         {chunk.map((q, qSubIdx) => {
           const globalIdx = pageIndex * qPerPage + qSubIdx + 1;
           return (
-            <div key={q.id} className="relative pl-3 sm:pl-6 pb-2 border-b border-blue-200/60 last:border-none">
+            <div
+              key={q.id}
+              onClick={() => { if (onEditQuestion) onEditQuestion(q); }}
+              className="relative pl-3 sm:pl-6 pb-2 border-b border-blue-200/60 last:border-none group/q hover:bg-[#fff7ed]/60 rounded-xl p-2 transition cursor-pointer"
+              title="अंगूठे से प्रश्न संपादित करने के लिए क्लिक करें"
+            >
+              {/* Quick Thumb Edit Button */}
+              {onEditQuestion && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditQuestion(q);
+                  }}
+                  className="absolute right-1 top-1 px-2.5 py-1 bg-[#FF9933] hover:bg-[#ea580c] text-white text-[10px] font-bold rounded-lg shadow-sm flex items-center gap-1 cursor-pointer transition active:scale-95 z-20"
+                >
+                  ✏️ एडिट
+                </button>
+              )}
               
               {/* Question Header */}
-              <div className="flex items-start gap-1.5 sm:gap-2 mb-2">
+              <div className="flex items-start gap-1.5 sm:gap-2 mb-2 pr-16">
                 <span className="text-sm sm:text-base font-black shrink-0">
                   प्र. {globalIdx}.
                 </span>
@@ -340,10 +429,10 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
               {/* Options Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:text-sm pl-3 sm:pl-6 mt-1 font-black">
-                <div>(A) {q.optionA}</div>
-                <div>(B) {q.optionB}</div>
-                <div>(C) {q.optionC}</div>
-                <div>(D) {q.optionD}</div>
+                <div className={q.answerKey === 'A' ? 'text-[#138808] animate-pulse' : ''}>(A) {q.optionA}</div>
+                <div className={q.answerKey === 'B' ? 'text-[#138808] animate-pulse' : ''}>(B) {q.optionB}</div>
+                <div className={q.answerKey === 'C' ? 'text-[#138808] animate-pulse' : ''}>(C) {q.optionC}</div>
+                <div className={q.answerKey === 'D' ? 'text-[#138808] animate-pulse' : ''}>(D) {q.optionD}</div>
               </div>
 
               {/* Step-by-step Hindi Explanation if enabled (Large Bold Green Text) */}
@@ -391,49 +480,49 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
       {/* Top Toolbar / Quick Style Controls in Tiranga Theme */}
       <div className="bg-white border border-amber-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-wrap items-center justify-between gap-3 text-slate-900">
         
-        {/* Left: Flipbook View Mode Switcher */}
-        <div className="flex items-center gap-2">
-          <div className="bg-[#fff7ed] p-1 rounded-xl border border-amber-200 flex items-center text-xs font-bold">
-            <button
-              onClick={() => setViewMode('flipbook')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 transition ${
-                viewMode === 'flipbook'
-                  ? 'bg-[#FF9933] text-white shadow-sm'
-                  : 'text-slate-700 hover:text-[#000080]'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" /> 📖 3D Flexible Flipbook
-            </button>
-            <button
-              onClick={() => setViewMode('scroll')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 transition ${
-                viewMode === 'scroll'
-                  ? 'bg-[#FF9933] text-white shadow-sm'
-                  : 'text-slate-700 hover:text-[#000080]'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" /> 📄 स्क्रॉल पेज
-            </button>
-          </div>
+        {/* Left: Settings Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs font-bold text-[#000080] hover:bg-amber-50 transition"
+          >
+            <Settings className="w-4 h-4 text-[#FF9933]" /> सेटिंग्स
+          </button>
+          {showSettings && (
+            <div className="absolute top-full left-0 mt-2 bg-white border border-amber-200 shadow-xl rounded-xl p-3 z-50 flex flex-col gap-2 w-52">
+              <div className="text-xs font-bold text-slate-500 mb-1">व्यू मोड</div>
+              <button
+                onClick={() => setViewMode('flipbook')}
+                className={`text-left px-3 py-2 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'flipbook' ? 'bg-[#FF9933] text-white' : 'hover:bg-amber-50 text-slate-700'
+                }`}
+              >
+                📖 3D लचीली बुक
+              </button>
+              <button
+                onClick={() => setViewMode('scroll')}
+                className={`text-left px-3 py-2 rounded-lg text-xs font-bold transition ${
+                  viewMode === 'scroll' ? 'bg-[#FF9933] text-white' : 'hover:bg-amber-50 text-slate-700'
+                }`}
+              >
+                📄 स्क्रॉल पेज
+              </button>
+              <div className="border-t border-amber-100 my-1"></div>
+              <div className="text-xs font-bold text-slate-500 mb-1">साउंड</div>
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`text-left px-3 py-2 rounded-lg text-xs font-bold transition ${
+                  soundEnabled ? 'bg-amber-100 text-[#ea580c]' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {soundEnabled ? '🔊 साउंड चालू' : '🔇 साउंड बंद'}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Center: Style Controls & Audio Sound Toggle */}
+        {/* Center: Style Controls */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          
-          {/* Sound Toggle */}
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`px-2.5 py-1.5 rounded-xl border font-bold flex items-center gap-1 transition ${
-              soundEnabled
-                ? 'bg-amber-100 text-[#ea580c] border-amber-300'
-                : 'bg-slate-100 text-slate-500 border-slate-200'
-            }`}
-            title="पेज फ्लिप साउंड ऑन/ऑफ़ करें"
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-[#FF9933]" /> : <VolumeX className="w-3.5 h-3.5" />}
-            {soundEnabled ? '🔊 साउंड ON' : '🔇 साउंड OFF'}
-          </button>
-
           {/* Font Picker */}
           <div className="flex items-center gap-1 bg-[#fff7ed] px-2 py-1.5 rounded-xl border border-amber-200">
             <span className="text-slate-600 font-medium">फ़ॉन्ट:</span>
@@ -503,7 +592,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             {isExporting ? 'बन रहा है...' : 'PDF डाउनलोड'}
           </button>
         </div>
-
       </div>
 
       {/* Progress Overlay */}
@@ -533,15 +621,11 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               disabled={currentPage === 0}
               className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[38px] shadow-xs active:scale-95"
             >
-              <ChevronLeft className="w-4 h-4 text-[#FF9933]" /> 👈 पिछला (Flip Left)
+              <ChevronLeft className="w-4 h-4 text-[#FF9933]" />
             </button>
 
             {/* Page Jump Counter & Touch Hint Badge */}
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 font-hind">
-              <span className="text-slate-600 flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                <MoveHorizontal className="w-3.5 h-3.5 text-[#FF9933]" /> मोडकर स्वाइप करें
-              </span>
-
               <span className="px-2.5 sm:px-3 py-1 bg-[#000080] text-white rounded-lg font-mono text-xs sm:text-sm">
                 {currentPage + 1} / {totalPages}
               </span>
@@ -551,10 +635,21 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                   isAutoFlipping ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
-                title="Auto Flip Slideshow"
+                title="ऑटो फ्लिप शो"
               >
                 {isAutoFlipping ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 {isAutoFlipping ? 'ऑटो बंद' : 'ऑटो चालू'}
+              </button>
+
+              <button
+                onClick={toggleVoiceAssistant}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
+                  isSpeaking ? 'bg-red-500 text-white' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                }`}
+                title="आवाज़ सहायक"
+              >
+                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                {isSpeaking ? 'बोलना बंद' : 'टीचर की आवाज़ में सुनें'}
               </button>
             </div>
 
@@ -563,7 +658,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               disabled={currentPage === totalPages - 1}
               className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#fff7ed] hover:bg-amber-100 text-[#000080] font-bold text-xs rounded-xl flex items-center gap-1 border border-amber-200 disabled:opacity-30 transition min-h-[38px] shadow-xs active:scale-95"
             >
-              अगला (Flip Right) 👉 <ChevronRight className="w-4 h-4 text-[#FF9933]" />
+              <ChevronRight className="w-4 h-4 text-[#FF9933]" />
             </button>
 
           </div>
@@ -617,6 +712,8 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             )}
 
           </div>
+
+
 
           {/* Hidden Root for Full PDF Export */}
           <div id="pdf-document-root" className="hidden">
