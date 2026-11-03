@@ -446,31 +446,29 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         </div>
       )}
 
-      {/* Center Spine Flexible Paper Fold Shadow */}
-      <div className="absolute top-0 bottom-0 left-0 w-8 sm:w-12 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none z-20"></div>
-
       {/* Dynamic Paper Crease Bend Shadow overlay during flip */}
       {(isFlipping || isDragging) && (
         <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-amber-900/10 to-black/15 pointer-events-none z-25"></div>
       )}
 
       {/* Right Book Page Stack Thickness Lines */}
-      <div className="absolute top-1 bottom-1 right-0 w-1.5 sm:w-2 border-r-2 sm:border-r-4 border-double border-amber-200/90 pointer-events-none z-20"></div>
+      <div className="absolute top-1 bottom-1 right-0 w-1.5 sm:w-2 pointer-events-none z-20"></div>
 
       {/* Ribbon Bookmark Corner Accent */}
       <div className="absolute top-0 right-4 sm:right-8 w-5 sm:w-6 h-8 sm:h-11 bg-[#FF9933] shadow-md z-30 flex items-end justify-center pb-1 rounded-b-sm">
         <Bookmark className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white fill-current" />
       </div>
 
-      {/* Flexible Peeling Page Corner Curl (Click or Touch Corner to Flip Page) */}
+      {/* Flexible Peeling Page Corner Curl (Click or Touch Corner to Peel Page) */}
       <div
         onClick={(e) => { e.stopPropagation(); handleNextPage(); }}
-        className="absolute bottom-0 right-0 w-14 sm:w-18 h-14 sm:h-18 bg-gradient-to-tl from-amber-400 via-amber-200/60 to-transparent pointer-events-auto z-30 rounded-tl-[40px] shadow-2xl cursor-pointer hover:scale-115 active:scale-95 transition group flex items-end justify-end p-2 border-t border-l border-amber-300"
-        title="कागज़ की तरह मोडकर पेज पलटने के लिए यहाँ टच करें"
+        className="absolute bottom-0 right-0 w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-tl from-amber-300 via-amber-100 to-transparent pointer-events-auto z-30 rounded-tl-[45px] shadow-[0_10px_20px_rgba(0,0,0,0.35)] cursor-pointer hover:rotate-[-12deg] hover:scale-110 hover:-translate-x-1 hover:-translate-y-1 transition-all duration-300 group flex items-end justify-end p-2 border-t-2 border-l-2 border-amber-400/80"
+        title="असली पुस्तक की तरह कोना मोड़कर अगला पेज पलटें"
       >
-        <span className="text-[11px] sm:text-xs font-black text-[#000080] group-hover:translate-x-0.5 transition flex items-center gap-0.5">
-          📖 ➔
-        </span>
+        <div className="flex items-center gap-0.5 text-[10px] sm:text-xs font-black text-[#000080]">
+          <span>📖</span>
+          <span className="text-[10px] text-amber-950 font-bold group-hover:translate-x-0.5 transition">मोड़ें ➔</span>
+        </div>
       </div>
 
       {/* Watermark */}
@@ -484,7 +482,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
       {/* Page Header */}
       {pageIndex === 0 ? (
-        <div className="border-b-2 border-slate-900 pb-3 sm:pb-4 mb-4 sm:mb-6 relative">
+        <div className="pb-3 sm:pb-4 mb-4 sm:mb-6 relative">
           
           {/* Top Institute Header */}
           <div className="text-center space-y-1">
@@ -526,7 +524,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
         </div>
       ) : (
         /* Header on Page 2+ */
-        <div className="border-b border-slate-400 pb-2 mb-4 sm:mb-6 flex items-center justify-between text-[11px] sm:text-xs text-slate-700 font-hind">
+        <div className="pb-2 mb-4 sm:mb-6 flex items-center justify-between text-[11px] sm:text-xs text-slate-700 font-hind">
           <span className="font-bold truncate max-w-[200px] sm:max-w-none">{headerConfig.instituteName} • {headerConfig.docTitle}</span>
           <span className="shrink-0">पृष्ठ {pageIndex + 1} / {totalPages}</span>
         </div>
@@ -547,7 +545,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                   toggleFullscreen(true);
                 }
               }}
-              className="relative pl-3 sm:pl-6 pb-2 border-b border-blue-200/60 last:border-none group/q hover:bg-[#fff7ed]/60 rounded-xl p-2 transition cursor-pointer"
+              className="relative pl-3 sm:pl-6 pb-2 group/q hover:bg-[#fff7ed]/60 rounded-xl p-2 transition cursor-pointer"
               title={isAdmin ? "प्रश्न संपादित करने के लिए क्लिक करें" : "फुल स्क्रीन करने के लिए क्लिक करें"}
             >
               {/* Quick Thumb Edit Button (Admin Only) */}
@@ -602,7 +600,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
       {/* Answer Key Table at bottom of Last Page */}
       {pageIndex === pageChunks.length - 1 && styleConfig.showAnswerKeyTable && (
-        <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t-2 border-slate-900 font-hind">
+        <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 font-hind">
           <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 text-center">
             - उत्तर कुंजी (ANSWER KEY MATRIX) -
           </h4>
@@ -618,7 +616,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
       )}
 
       {/* Page Footer */}
-      <div className="mt-6 sm:mt-auto pt-4 sm:pt-6 border-t border-slate-400 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 font-hind">
+      <div className="mt-6 sm:mt-auto pt-4 sm:pt-6 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 font-hind">
         <span className="truncate max-w-[200px] sm:max-w-none">{headerConfig.instituteName} - {headerConfig.contactNumber}</span>
         <span>पृष्ठ {pageIndex + 1} / {totalPages}</span>
       </div>
@@ -873,85 +871,97 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 
           </div>
 
-          {/* Touch Swipe & Mouse Drag Interactive Flexible Paper Stage */}
-          <div
-            ref={containerRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            className="perspective-1000 max-w-4xl mx-auto relative w-full overflow-hidden p-1 sm:p-2 cursor-grab active:cursor-grabbing select-none flex justify-center touch-pan-y min-h-[500px]"
-            style={{ touchAction: 'pan-y' }}
-          >
+          {/* Real Hardcover Leather Book Binding Casing & Interactive Paper Stage */}
+          <div className="relative mx-auto my-1 p-2 sm:p-5 rounded-2xl bg-gradient-to-b from-[#2a170b] via-[#1a0e07] to-[#120803] shadow-2xl border-4 border-[#d4af37]/80 ring-2 ring-black/50 max-w-4xl w-full">
             
-            {/* Base Layer: Displays Target / Destination Page */}
+            {/* Gold Embossed Foil Frame Accent */}
+            <div className="absolute inset-1.5 border border-[#d4af37]/35 rounded-xl pointer-events-none"></div>
+
+            {/* 3D Stacked Paper Edge Thickness (Right Page Stack Depth) */}
+            <div className="absolute top-3 bottom-3 right-1 w-2 sm:w-3.5 bg-gradient-to-r from-amber-100 via-amber-200 to-amber-300 rounded-r shadow-md pointer-events-none z-10"></div>
+            {/* 3D Stacked Paper Edge Thickness (Left Page Stack Depth) */}
+            <div className="absolute top-3 bottom-3 left-1 w-2 sm:w-3.5 bg-gradient-to-l from-amber-100 via-amber-200 to-amber-300 rounded-l shadow-md pointer-events-none z-10"></div>
+
+            {/* Touch Swipe & Mouse Drag Interactive Flexible Paper Stage */}
             <div
-              className="w-full max-w-full flex justify-center transform-gpu"
-              style={computeFlexiblePaperStyle()}
+              ref={containerRef}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              className="perspective-1000 relative w-full overflow-hidden p-1 sm:p-2 cursor-grab active:cursor-grabbing select-none flex justify-center touch-pan-y min-h-[500px]"
+              style={{ touchAction: 'pan-y' }}
             >
-              {pageChunks.length > 0 && pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage] ? (
-                renderPageContent(
-                  pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage],
-                  isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage,
-                  false
-                )
-              ) : (
-                <div className="p-8 text-center bg-white rounded-2xl border border-amber-200 w-full max-w-xl mx-auto shadow-sm">
-                  <p className="text-base font-bold text-slate-700">कोई प्रश्न उपलब्ध नहीं है</p>
-                  <p className="text-xs text-slate-500 mt-1">कृपया विषय या कठिनाई फ़िल्टर बदलें।</p>
-                </div>
+              
+              {/* Base Layer: Displays Target / Destination Page */}
+              <div
+                className="w-full max-w-full flex justify-center transform-gpu"
+                style={computeFlexiblePaperStyle()}
+              >
+                {pageChunks.length > 0 && pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage] ? (
+                  renderPageContent(
+                    pageChunks[isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage],
+                    isFlipping ? (turningPageTo ?? safeCurrentPage) : safeCurrentPage,
+                    false
+                  )
+                ) : (
+                  <div className="p-8 text-center bg-white rounded-2xl border border-amber-200 w-full max-w-xl mx-auto shadow-sm">
+                    <p className="text-base font-bold text-slate-700">कोई प्रश्न उपलब्ध नहीं है</p>
+                    <p className="text-xs text-slate-500 mt-1">कृपया विषय या कठिनाई फ़िल्टर बदलें।</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Top 3D Turning Leaf Layer: Flips page VERY SLOWLY (2.2s) & CLEARLY over spine onto left side */}
+              {isFlipping && turningPageFrom !== null && pageChunks[turningPageFrom] && (
+                <>
+                  <div
+                    className="absolute inset-0 flex justify-center pointer-events-none z-30 transform-gpu"
+                    style={{
+                      transformOrigin: flipDirection === 'next' ? 'left center' : 'right center',
+                      transform: `perspective(2000px) rotateY(${flipTurnAngle}deg)`,
+                      transition: `transform ${getFlipDuration() / 1000}s cubic-bezier(0.35, 0, 0.15, 1), opacity 0.5s ease`,
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      opacity: Math.abs(flipTurnAngle) > 150 ? 0 : 1,
+                    }}
+                  >
+                    {renderPageContent(pageChunks[turningPageFrom], turningPageFrom, false)}
+                  </div>
+
+                  {/* Page Turning Visible Pill Badge Overlay */}
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#000080] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-2xl z-40 border-2 border-amber-300 animate-bounce flex items-center gap-2 pointer-events-none">
+                    <span className="animate-spin text-amber-300">📖</span>
+                    <span>धीमे से पृष्ठ पलट रहा है... (पृष्ठ {turningPageFrom + 1} ➔ {turningPageTo !== null ? turningPageTo + 1 : ''})</span>
+                  </div>
+                </>
               )}
-            </div>
 
-            {/* Top 3D Turning Leaf Layer: Flips page VERY SLOWLY (2.2s) & CLEARLY over spine onto left side */}
-            {isFlipping && turningPageFrom !== null && pageChunks[turningPageFrom] && (
-              <>
-                <div
-                  className="absolute inset-0 flex justify-center pointer-events-none z-30 transform-gpu"
-                  style={{
-                    transformOrigin: flipDirection === 'next' ? 'left center' : 'right center',
-                    transform: `perspective(2000px) rotateY(${flipTurnAngle}deg)`,
-                    transition: `transform ${getFlipDuration() / 1000}s cubic-bezier(0.35, 0, 0.15, 1), opacity 0.5s ease`,
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                    opacity: Math.abs(flipTurnAngle) > 150 ? 0 : 1,
-                  }}
+              {/* Side Tap Regions for Touch Screen */}
+              {safeCurrentPage > 0 && (
+                <button
+                  onClick={handlePrevPage}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-24 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-r-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
+                  title="पिछला पेज पलटे"
                 >
-                  {renderPageContent(pageChunks[turningPageFrom], turningPageFrom, false)}
-                </div>
+                  <ChevronLeft className="w-6 sm:w-8 h-6 sm:h-8" />
+                </button>
+              )}
 
-                {/* Page Turning Visible Pill Badge Overlay */}
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#000080] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-2xl z-40 border-2 border-amber-300 animate-bounce flex items-center gap-2 pointer-events-none">
-                  <span className="animate-spin text-amber-300">📖</span>
-                  <span>धीमे से पृष्ठ पलट रहा है... (पृष्ठ {turningPageFrom + 1} ➔ {turningPageTo !== null ? turningPageTo + 1 : ''})</span>
-                </div>
-              </>
-            )}
+              {safeCurrentPage < totalPages - 1 && (
+                <button
+                  onClick={handleNextPage}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-28 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-l-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
+                  title="अगला पेज पलटे"
+                >
+                  <ChevronRight className="w-6 sm:w-8 h-6 sm:h-8" />
+                </button>
+              )}
 
-            {/* Side Tap Regions for Touch Screen */}
-            {safeCurrentPage > 0 && (
-              <button
-                onClick={handlePrevPage}
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-24 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-r-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
-                title="पिछला पेज पलटे"
-              >
-                <ChevronLeft className="w-6 sm:w-8 h-6 sm:h-8" />
-              </button>
-            )}
-
-            {safeCurrentPage < totalPages - 1 && (
-              <button
-                onClick={handleNextPage}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-28 sm:h-28 bg-[#FF9933]/30 hover:bg-[#FF9933]/50 text-[#000080] rounded-l-2xl flex items-center justify-center transition shadow-lg backdrop-blur-xs z-30"
-                title="अगला पेज पलटे"
-              >
-                <ChevronRight className="w-6 sm:w-8 h-6 sm:h-8" />
-              </button>
-            )}
-
+            </div>
           </div>
 
           {/* Hidden Root for Full PDF Export - GUARANTEED PURE WHITE (#ffffff) */}
